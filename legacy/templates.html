@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — Templates</title>
+  <meta name="description" content="Create and manage SMS templates with variable placeholders for personalized bulk messaging." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <style>
+    .template-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+    }
+    .template-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-glow);
+    }
+    .template-card.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .template-preview {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      min-height: 70px;
+    }
+    .char-counter-ring {
+      position: relative;
+      width: 48px; height: 48px;
+    }
+    .char-counter-ring svg { transform: rotate(-90deg); }
+    .char-counter-ring .counter-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: var(--text-primary);
+    }
+    .variable-tag {
+      display: inline-block;
+      background: rgba(99,102,241,0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+      font-family: monospace;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Templates</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <div class="grid mb-24" style="grid-template-columns:1fr 400px;gap:24px;">
+
+        <!-- LEFT: Template List -->
+        <div>
+          <div class="section-header mb-20">
+            <div>
+              <div class="section-title">📝 SMS Templates</div>
+              <div class="section-subtitle">Create reusable templates with dynamic variables</div>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('templateModal')">＋ New Template</button>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="flex gap-8 mb-20 flex-wrap" id="categoryFilters">
+            <button class="chip active" data-cat="All" onclick="filterTemplates('All',this)">All</button>
+            <button class="chip" data-cat="Promotions" onclick="filterTemplates('Promotions',this)">🎯 Promotions</button>
+            <button class="chip" data-cat="Transactional" onclick="filterTemplates('Transactional',this)">🔔 Transactional</button>
+            <button class="chip" data-cat="Onboarding" onclick="filterTemplates('Onboarding',this)">👋 Onboarding</button>
+            <button class="chip" data-cat="Reminders" onclick="filterTemplates('Reminders',this)">⏰ Reminders</button>
+          </div>
+
+          <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;" id="templateGrid"></div>
+        </div>
+
+        <!-- RIGHT: Template Editor / Preview -->
+        <div style="position:sticky;top:84px;height:fit-content;">
+          <div class="card" id="previewPanel">
+            <div class="card-title mb-4">📱 Live Preview</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Select a template to preview</div>
+
+            <!-- Phone Mockup -->
+            <div style="background:var(--bg-elevated);border-radius:20px;padding:20px;border:1px solid var(--border);margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;">📱</div>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text-primary);">BulkSend</div>
+                  <div style="font-size:10px;color:var(--text-muted);">SMS · Now</div>
+                </div>
+              </div>
+              <div id="phoneMockupText" style="background:var(--bg-card);border-radius:12px 12px 12px 4px;padding:12px 14px;font-size:13px;color:var(--text-secondary);line-height:1.6;min-height:60px;">
+                Select a template to preview...
+              </div>
+            </div>
+
+            <div id="templateMeta" style="display:none;">
+              <div class="grid grid-2 gap-12 mb-16">
+                <div style="padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">
+                  <div id="previewChars" style="font-size:20px;font-weight:700;color:var(--primary-light);">—</div>
+                  <div style="font-size:11px;color:var(--text-muted);">Characters</div>
+                </div>
+                <div style="padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">
+                  <div id="previewCredits" style="font-size:20px;font-weight:700;color:var(--accent);">—</div>
+                  <div style="font-size:11px;color:var(--text-muted);">SMS Credits</div>
+                </div>
+              </div>
+              <div id="previewVariables" style="margin-bottom:16px;"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" style="flex:1;" onclick="useTemplate()">Use in Campaign</button>
+                <button class="btn btn-outline btn-sm" onclick="editSelectedTemplate()">✏️ Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSelectedTemplate()">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- TEMPLATE MODAL -->
+  <div class="modal-overlay" id="templateModal">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <div class="modal-title" id="templateModalTitle">➕ New Template</div>
+        <button class="btn btn-ghost btn-icon-only" onclick="closeModal('templateModal')">✕</button>
+      </div>
+      <input type="hidden" id="editTemplateId" />
+
+      <div class="form-group">
+        <label class="form-label">Template Name *</label>
+        <input type="text" class="form-input" id="tplName" placeholder="e.g. Summer Flash Sale" />
+      </div>
+
+      <div class="grid grid-2 gap-12">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="tplCategory">
+            <option>Promotions</option>
+            <option>Transactional</option>
+            <option>Onboarding</option>
+            <option>Reminders</option>
+            <option>Alerts</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sender ID</label>
+          <input type="text" class="form-input" id="tplSenderId" placeholder="Your business name or +1..." />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label class="form-label" style="margin:0;">Message Content *</label>
+          <div style="font-size:12px;color:var(--text-muted);" id="charCount">0 / 160 chars · 1 credit</div>
+        </div>
+        <textarea class="form-textarea" id="tplContent" rows="5"
+          placeholder="Hi {{name}}, your order #{{order_id}} has been confirmed! Track: {{link}} Reply STOP to opt-out."
+          oninput="updateCharCount(this.value)"></textarea>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+          Use <code class="variable-tag">{{name}}</code> for variables. Common: 
+          <span class="variable-tag" onclick="insertVar('name')" style="cursor:pointer;">{{name}}</span>
+          <span class="variable-tag" onclick="insertVar('phone')" style="cursor:pointer;">{{phone}}</span>
+          <span class="variable-tag" onclick="insertVar('link')" style="cursor:pointer;">{{link}}</span>
+          <span class="variable-tag" onclick="insertVar('otp')" style="cursor:pointer;">{{otp}}</span>
+          <span class="variable-tag" onclick="insertVar('date')" style="cursor:pointer;">{{date}}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="closeModal('templateModal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="saveTemplate()">Save Template</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/templates.js?v=5"></script>
+</body>
+</html>

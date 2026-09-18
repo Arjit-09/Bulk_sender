@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+:root, [data-theme="dark"] {
+  --bg-base: #0a0b1a;
+  --bg-card: #0f1129;
+  --bg-card-hover: #141630;
+  --bg-elevated: #181a35;
+  --bg-surface: #12142e;
+  --bg-input: #0d0f26;
+  --bg-sidebar: #0f1129;
+  --bg-topbar: rgba(10, 11, 26, 0.85);
+  
+  --border-color: rgba(99, 102, 241, 0.2);
+  --border-subtle: rgba(99, 102, 241, 0.12);
+  
+  --text-heading: #ffffff;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --modal-overlay: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="light"] {
+  --bg-base: #f4f6fb;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-elevated: #e2e8f0;
+  --bg-surface: #f1f5f9;
+  --bg-input: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-topbar: rgba(255, 255, 255, 0.92);
+  
+  --border-color: rgba(99, 102, 241, 0.22);
+  --border-subtle: rgba(99, 102, 241, 0.12);
+  
+  --text-heading: #0f172a;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --modal-overlay: rgba(15, 23, 42, 0.6);
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ===================== LIGHT MODE COMPONENT OVERRIDES ===================== */
+[data-theme="light"] .min-h-screen,
+[data-theme="light"] main {
+  background-color: var(--bg-base) !important;
+}
+
+[data-theme="light"] aside {
+  background-color: var(--bg-sidebar) !important;
+  border-right-color: var(--border-color) !important;
+  box-shadow: 2px 0 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] header {
+  background-color: var(--bg-topbar) !important;
+  border-bottom-color: var(--border-color) !important;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .bg-\[\#0a0b1a\] {
+  background-color: var(--bg-base) !important;
+}
+
+[data-theme="light"] .bg-\[\#0f1129\] {
+  background-color: var(--bg-card) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="light"] .bg-\[\#12142e\] {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="light"] .bg-\[\#181a35\] {
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="light"] .bg-\[\#0d0f26\] {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="light"] .bg-\[\#141630\] {
+  background-color: var(--bg-card-hover) !important;
+}
+
+/* Text overrides in Light Mode */
+[data-theme="light"] .text-white {
+  color: var(--text-heading) !important;
+}
+
+[data-theme="light"] .text-\[\#f1f5f9\] {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .text-\[\#94a3b8\] {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4 {
+  color: var(--text-heading) !important;
+}
+
+/* Inputs, Textareas and Selects in Light Mode */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  border-color: #6366f1 !important;
+  outline: none !important;
+}
+
+/* Table styling in Light Mode */
+[data-theme="light"] tr:hover {
+  background-color: #f8fafc !important;
+}
+
+[data-theme="light"] thead tr {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] tbody tr {
+  border-bottom-color: #f1f5f9 !important;
+}
+
+/* Modals in Light Mode */
+[data-theme="light"] .fixed.inset-0.z-50.bg-black\/70 {
+  background-color: var(--modal-overlay) !important;
+}

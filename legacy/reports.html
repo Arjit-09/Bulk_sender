@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — Reports & Logs</title>
+  <meta name="description" content="View detailed SMS delivery reports, message logs, and campaign analytics." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .filter-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .status-dot.delivered { background:var(--success); }
+    .status-dot.failed { background:var(--danger); }
+    .status-dot.pending { background:var(--warning); }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Reports</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <!-- STATS ROW -->
+      <div class="grid grid-4 mb-24 animate-in">
+        <div class="stat-card primary">
+          <div class="stat-card-icon">📨</div>
+          <div class="stat-value" id="rptTotal">—</div>
+          <div class="stat-label">Total Messages</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-card-icon">✅</div>
+          <div class="stat-value" id="rptDelivered">—</div>
+          <div class="stat-label">Delivered</div>
+          <div class="stat-change up" id="rptRate">—% rate</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-card-icon">❌</div>
+          <div class="stat-value" id="rptFailed">—</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-card-icon">💵</div>
+          <div class="stat-value" id="rptCost">—</div>
+          <div class="stat-label">Total Spend</div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW -->
+      <div class="grid grid-2 mb-24">
+        <div class="card animate-in" style="animation-delay:0.05s;">
+          <div class="card-title mb-16">📈 Daily Message Volume</div>
+          <div class="chart-container">
+            <canvas id="dailyChart"></canvas>
+          </div>
+        </div>
+        <div class="card animate-in" style="animation-delay:0.1s;">
+          <div class="card-title mb-16">📊 Campaign Performance</div>
+          <div class="chart-container">
+            <canvas id="campaignChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- MESSAGE LOG TABLE -->
+      <div class="card animate-in" style="animation-delay:0.15s;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📋 Message Log</div>
+            <div class="card-subtitle">All outbound messages with delivery status</div>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn btn-outline btn-sm" onclick="exportLogs()">⬇️ Export CSV</button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div style="display:grid;grid-template-columns:1fr 160px 180px 160px;gap:12px;margin-bottom:16px;">
+          <input type="text" class="form-input" placeholder="🔍 Search name or phone..." id="logSearch" oninput="filterLogs()" />
+          <select class="form-select" id="logStatus" onchange="filterLogs()">
+            <option value="">All Status</option>
+            <option value="delivered">✅ Delivered</option>
+            <option value="failed">❌ Failed</option>
+            <option value="pending">⏳ Pending</option>
+          </select>
+          <select class="form-select" id="logCampaign" onchange="filterLogs()">
+            <option value="">All Campaigns</option>
+          </select>
+          <input type="date" class="form-input" id="logDate" onchange="filterLogs()" />
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Recipient</th>
+                <th>Phone</th>
+                <th>Campaign</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>Cost</th>
+                <th>Sent At</th>
+              </tr>
+            </thead>
+            <tbody id="logsBody"></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:13px;color:var(--text-muted);">
+          <span id="logCount">0 messages</span>
+          <div class="flex gap-8">
+            <button class="btn btn-outline btn-sm" id="prevPage" onclick="changePage(-1)">← Prev</button>
+            <span id="pageInfo" style="padding:6px 12px;font-size:12px;">Page 1</span>
+            <button class="btn btn-outline btn-sm" id="nextPage" onclick="changePage(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAMPAIGN REPORT TABLE -->
+      <div class="card mt-20 animate-in" style="animation-delay:0.2s;">
+        <div class="card-title mb-16">🚀 Campaign-Level Report</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Status</th>
+                <th>Sent</th>
+                <th>Delivered</th>
+                <th>Failed</th>
+                <th>Del. Rate</th>
+                <th>Cost</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="campaignReportBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/reports.js?v=5"></script>
+</body>
+</html>

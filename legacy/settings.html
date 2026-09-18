@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — Settings</title>
+  <meta name="description" content="Configure your SMS API provider, sender ID, webhooks, and compliance settings." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <style>
+    .settings-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .settings-section:hover { border-color: var(--border-hover); }
+    .settings-section-title {
+      font-size: 16px; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .settings-section-desc {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .provider-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .provider-option {
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .provider-option:hover { border-color: var(--border-hover); }
+    .provider-option.selected {
+      border-color: var(--primary);
+      background: rgba(99,102,241,0.08);
+    }
+    .provider-option-icon { font-size: 24px; margin-bottom: 6px; }
+    .provider-option-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .provider-option-price { font-size: 11px; color: var(--text-muted); }
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-row-info h4 { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .setting-row-info p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .api-key-display {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+      flex: 1;
+      margin-right: 8px;
+    }
+    .compliance-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Settings</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <div class="grid" style="grid-template-columns:1fr 320px;gap:24px;align-items:start;">
+        <div>
+
+          <!-- PROVIDER SELECTION -->
+          <div class="settings-section animate-in">
+            <div class="settings-section-title">📡 Two-Way SMS Provider</div>
+            <div class="settings-section-desc">Select your primary provider for US bidirectional (outbound broadcast + inbound conversational) messaging. One-way push APIs are excluded.</div>
+
+            <div class="provider-selector" id="providerSelector"></div>
+
+            <div id="providerConfig" style="display:grid;gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Account SID / API Key</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="password" class="form-input" id="apiKey" placeholder="Enter your API key..." />
+                  <button class="btn btn-outline btn-sm" onclick="toggleApiKey()" id="toggleKeyBtn">👁️ Show</button>
+                </div>
+                <div class="form-hint">Your key is stored locally and never sent to any external server</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Auth Token / Secret</label>
+                <input type="password" class="form-input" id="authToken" placeholder="Auth token..." />
+              </div>
+              <div class="form-group">
+                <label class="form-label">US Long Code / 10DLC Number (Sends & Receives)</label>
+                <div class="input-group">
+                  <div class="input-group-prefix">🇺🇸 +1</div>
+                  <input type="tel" class="form-input" id="fromNumber" placeholder="5005550006" />
+                </div>
+                <div class="form-hint">Must be an A2P 10DLC registered number capable of two-way SMS</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Inbound Webhook URL (Receives Customer Replies)</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="url" class="form-input" id="inboundWebhookUrl" value="https://api.bulksend.io/v1/webhooks/inbound" />
+                  <button class="btn btn-outline btn-sm" onclick="testInboundWebhook()">🔄 Test Ping</button>
+                </div>
+                <div class="form-hint">Provider will POST incoming customer messages to this URL to feed into your 2-Way Inbox</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Delivery Status Callback URL</label>
+                <input type="url" class="form-input" id="webhookUrl" placeholder="https://api.bulksend.io/v1/webhooks/status" />
+                <div class="form-hint">Provider will POST outbound delivery confirmations (Delivered / Failed) to this URL</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveProviderSettings()">💾 Save Provider Settings</button>
+            </div>
+          </div>
+
+          <!-- SENDING DEFAULTS -->
+          <div class="settings-section animate-in" style="animation-delay:0.05s;">
+            <div class="settings-section-title">⚙️ Sending Defaults</div>
+            <div class="settings-section-desc">Configure default behavior for outbound SMS campaigns</div>
+
+            <div class="setting-row">
+              <div class="setting-row-info">
+                <h4>Opt-Out Footer</h4>
+                <p>Automatically append "Reply STOP to opt-out" to every message</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked id="optOutToggle" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info">
+                <h4>Quiet Hours (TCPA)</h4>
+                <p>Block sending between 9PM–8AM recipient's local time</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked id="quietHoursToggle" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info">
+                <h4>Duplicate Check</h4>
+                <p>Skip duplicate phone numbers within the same campaign</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked id="dupCheckToggle" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info">
+                <h4>Rate Limiting</h4>
+                <p>Max messages per second (recommended: 10 for Twilio)</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="number" class="form-input" value="10" min="1" max="100" style="width:80px;" id="rateLimit" />
+                <span style="font-size:12px;color:var(--text-muted);">msg/sec</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info">
+                <h4>Retry Failed Messages</h4>
+                <p>Auto-retry failed deliveries up to 3 times</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="retryToggle" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button class="btn btn-primary btn-sm" onclick="saveDefaults()">Save Defaults</button>
+            </div>
+          </div>
+
+          <!-- A2P 10DLC -->
+          <div class="settings-section animate-in" style="animation-delay:0.1s;">
+            <div class="settings-section-title">🏢 A2P 10DLC Registration (US Compliance)</div>
+            <div class="settings-section-desc">Required by US carriers for business SMS. Register your brand and campaign to avoid message filtering.</div>
+
+            <div style="display:grid;gap:12px;margin-bottom:20px;">
+              <div style="padding:16px;background:var(--warning-bg);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-sm);">
+                <div style="font-size:13px;font-weight:700;color:var(--warning-light);margin-bottom:4px;">⚠️ A2P 10DLC is Mandatory</div>
+                <div style="font-size:12px;color:var(--text-muted);">Since 2021, all US business SMS must be registered with The Campaign Registry (TCR). Unregistered messages are blocked by major carriers (AT&T, T-Mobile, Verizon).</div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Business Name</label>
+                <input type="text" class="form-input" id="bizName" placeholder="Your LLC / Inc. name" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">EIN / Tax ID</label>
+                <input type="text" class="form-input" id="bizEIN" placeholder="XX-XXXXXXX" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Use Case</label>
+                <select class="form-select" id="bizUseCase">
+                  <option>Marketing / Promotions</option>
+                  <option>Transactional / Alerts</option>
+                  <option>Two-Factor Authentication</option>
+                  <option>Customer Care</option>
+                  <option>Polling & Surveys</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="save10DLC()">Register Brand</button>
+              <a href="https://help.twilio.com/articles/1260803965530" target="_blank" class="btn btn-outline">📖 TCR Guide</a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          <!-- STATUS PANEL -->
+          <div class="settings-section animate-in" style="animation-delay:0.05s;">
+            <div class="settings-section-title" style="margin-bottom:12px;">🔌 Connection Status</div>
+            <div style="display:grid;gap:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+                <span style="font-size:13px;color:var(--text-secondary);">API Status</span>
+                <span class="compliance-badge" style="background:var(--success-bg);color:var(--success-light);">● Connected</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+                <span style="font-size:13px;color:var(--text-secondary);">Provider</span>
+                <span style="font-size:13px;font-weight:600;color:var(--text-primary);" id="currentProvider">Twilio</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+                <span style="font-size:13px;color:var(--text-secondary);">Balance</span>
+                <span style="font-size:14px;font-weight:700;color:var(--primary-light);">$47.32</span>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="testConnection()" style="margin-top:4px;">🔄 Test Connection</button>
+            </div>
+          </div>
+
+          <!-- COMPLIANCE CHECKLIST -->
+          <div class="settings-section animate-in" style="animation-delay:0.1s;">
+            <div class="settings-section-title" style="margin-bottom:12px;">✅ US Compliance Checklist</div>
+            <div style="display:grid;gap:10px;font-size:13px;" id="complianceList">
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--success);flex-shrink:0;">✅</span>
+                <span style="color:var(--text-secondary);">A2P 10DLC brand registered</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--success);flex-shrink:0;">✅</span>
+                <span style="color:var(--text-secondary);">Opt-out footer on all messages</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--success);flex-shrink:0;">✅</span>
+                <span style="color:var(--text-secondary);">TCPA quiet hours enforced</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--warning);flex-shrink:0;">⚠️</span>
+                <span style="color:var(--text-secondary);">Explicit consent records stored</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--warning);flex-shrink:0;">⚠️</span>
+                <span style="color:var(--text-secondary);">Privacy policy URL in opt-in form</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:start;">
+                <span style="color:var(--danger);flex-shrink:0;">❌</span>
+                <span style="color:var(--text-secondary);">Toll-free number verification</span>
+              </div>
+            </div>
+            <div style="margin-top:14px;padding:10px;background:var(--info-bg);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);">
+              ℹ️ TCPA violations can result in fines of $500–$1,500 per message
+            </div>
+          </div>
+
+          <!-- QUICK STATS -->
+          <div class="settings-section animate-in" style="animation-delay:0.15s;">
+            <div class="settings-section-title" style="margin-bottom:12px;">📊 Account Stats</div>
+            <div style="display:grid;gap:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span style="color:var(--text-muted);">Total contacts</span>
+                <span style="font-weight:600;" id="statContactsCount">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span style="color:var(--text-muted);">Templates</span>
+                <span style="font-weight:600;" id="statTemplatesCount">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span style="color:var(--text-muted);">Campaigns</span>
+                <span style="font-weight:600;" id="statCampaignsCount">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span style="color:var(--text-muted);">Messages sent</span>
+                <span style="font-weight:600;" id="statMessagesCount">0</span>
+              </div>
+            </div>
+            <button class="btn btn-danger btn-sm" style="margin-top:14px;width:100%;" onclick="confirmReset()">🗑️ Reset All Demo Data</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/settings.js?v=5"></script>
+</body>
+</html>

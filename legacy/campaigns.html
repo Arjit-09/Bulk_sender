@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — Campaigns</title>
+  <meta name="description" content="Create and manage bulk SMS campaigns — send to thousands of contacts with one click." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <style>
+    .campaign-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: var(--transition);
+    }
+    .campaign-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-glow);
+    }
+    .sending-overlay {
+      position: fixed; inset: 0;
+      background: rgba(10,11,26,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+      display: none;
+    }
+    .sending-overlay.active { display: flex; }
+    .send-circle {
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(6,182,212,0.1));
+      border: 2px solid var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+      animation: pulse-ring 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+      50% { box-shadow: 0 0 0 24px rgba(99,102,241,0); }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Campaigns</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <div class="grid mb-24" style="grid-template-columns:1fr 380px;gap:24px;align-items:start;">
+
+        <!-- LEFT: Campaign List -->
+        <div>
+          <div class="section-header mb-20">
+            <div>
+              <div class="section-title">📤 Campaigns</div>
+              <div class="section-subtitle">Manage your bulk SMS campaigns</div>
+            </div>
+            <button class="btn btn-primary" onclick="showCreatePanel()">＋ Create Campaign</button>
+          </div>
+
+          <!-- Status Tabs -->
+          <div class="flex gap-8 mb-20">
+            <button class="chip active" data-status="all" onclick="filterCampaigns('all',this)">All</button>
+            <button class="chip" data-status="running" onclick="filterCampaigns('running',this)">🔄 Running</button>
+            <button class="chip" data-status="completed" onclick="filterCampaigns('completed',this)">✅ Completed</button>
+            <button class="chip" data-status="scheduled" onclick="filterCampaigns('scheduled',this)">🕐 Scheduled</button>
+          </div>
+
+          <div id="campaignGrid" style="display:grid;gap:16px;"></div>
+        </div>
+
+        <!-- RIGHT: Create Campaign Panel -->
+        <div class="card animate-in" id="createPanel" style="position:sticky;top:84px;">
+          <div class="card-title mb-20">🚀 Create New Campaign</div>
+
+          <!-- STEPS -->
+          <div class="steps mb-24">
+            <div class="step active" id="step1el">
+              <div class="step-number">1</div>
+              <div class="step-label">Template</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step" id="step2el">
+              <div class="step-number">2</div>
+              <div class="step-label">Audience</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step" id="step3el">
+              <div class="step-number">3</div>
+              <div class="step-label">Send</div>
+            </div>
+          </div>
+
+          <!-- STEP 1 -->
+          <div id="step1">
+            <div class="form-group">
+              <label class="form-label">Campaign Name *</label>
+              <input type="text" class="form-input" id="campName" placeholder="e.g. Black Friday Sale 2024" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Select Template *</label>
+              <select class="form-select" id="campTemplate" onchange="onTemplateChange()">
+                <option value="">— Choose a template —</option>
+              </select>
+            </div>
+            <div id="templatePreviewBox" style="display:none;margin-bottom:16px;">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Preview:</div>
+              <div style="background:var(--bg-elevated);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text-secondary);line-height:1.6;" id="campTemplatePreview"></div>
+            </div>
+            <button class="btn btn-primary w-full" onclick="goStep(2)">Next: Choose Audience →</button>
+          </div>
+
+          <!-- STEP 2 -->
+          <div id="step2" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Target Group *</label>
+              <select class="form-select" id="campGroup" onchange="updateEstimate()">
+                <option value="">— Select a group —</option>
+              </select>
+            </div>
+            <div id="groupInfo" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+              <div style="font-size:13px;color:var(--text-secondary);">
+                <span id="groupCount" style="font-size:18px;font-weight:700;color:var(--primary-light);">0</span>
+                <span> contacts in this group</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Schedule</label>
+              <select class="form-select" id="campSchedule" onchange="toggleScheduleTime()">
+                <option value="now">Send Immediately</option>
+                <option value="schedule">Schedule for Later</option>
+              </select>
+            </div>
+            <div class="form-group" id="scheduleTimeGroup" style="display:none;">
+              <label class="form-label">Date & Time</label>
+              <input type="datetime-local" class="form-input" id="campScheduleTime" />
+            </div>
+
+            <!-- Cost Estimate -->
+            <div id="costEstimate" style="display:none;padding:14px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(6,182,212,0.05));border-radius:var(--radius-sm);border:1px solid var(--border-hover);margin-bottom:16px;">
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">💰 Cost Estimate</div>
+              <div style="display:grid;gap:6px;font-size:12px;">
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Recipients</span><span id="estRecipients" style="font-weight:600;">—</span></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">SMS credits/msg</span><span id="estCredits" style="font-weight:600;">—</span></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Rate (Twilio)</span><span style="font-weight:600;">$0.0079/SMS</span></div>
+                <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);font-weight:600;">Total Estimated Cost</span><span id="estTotal" style="font-weight:800;color:var(--primary-light);font-size:16px;">—</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-outline" style="flex:1;" onclick="goStep(1)">← Back</button>
+              <button class="btn btn-primary" style="flex:2;" onclick="goStep(3)">Review & Send →</button>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div id="step3" style="display:none;">
+            <div style="padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);margin-bottom:16px;" id="reviewBox"></div>
+            <div style="padding:12px;background:var(--warning-bg);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.2);margin-bottom:16px;font-size:12px;color:var(--warning-light);">
+              ⚠️ <strong>TCPA Compliance:</strong> Ensure all recipients have opted in to receive SMS. Include opt-out instructions.
+            </div>
+            <label class="flex gap-8 items-center mb-16" style="cursor:pointer;font-size:13px;color:var(--text-secondary);">
+              <input type="checkbox" id="confirmConsent" /> I confirm all contacts have given explicit consent
+            </label>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-outline" style="flex:1;" onclick="goStep(2)">← Back</button>
+              <button class="btn btn-success" style="flex:2;" onclick="launchCampaign()">🚀 Launch Campaign</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- SENDING OVERLAY -->
+  <div class="sending-overlay" id="sendingOverlay">
+    <div class="send-circle">📤</div>
+    <div style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sending Campaign...</div>
+      <div style="font-size:14px;color:var(--text-muted);" id="sendingStatus">Preparing messages...</div>
+    </div>
+    <div style="width:400px;max-width:90vw;">
+      <div class="progress-bar" style="height:12px;">
+        <div class="progress-fill" id="sendProgress" style="width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-muted);">
+        <span id="sendCount">0 sent</span>
+        <span id="sendPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/campaigns.js?v=5"></script>
+</body>
+</html>

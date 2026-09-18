@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — SMS API Pricing for US</title>
+  <meta name="description" content="Compare Two-Way SMS API pricing for US clients — Twilio, Plivo, Bandwidth, Vonage, and Sinch. Inbound and outbound rates." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .provider-row {
+      display: grid;
+      grid-template-columns: 180px 130px 160px 130px 1fr 100px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .provider-row:hover { background: var(--bg-elevated); }
+    .provider-row.header {
+      background: var(--bg-elevated);
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+    .provider-row.recommended { background: rgba(99,102,241,0.04); }
+    .provider-name {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .provider-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .calc-result {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(6,182,212,0.05));
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .winner-card {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.05));
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Pricing</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <!-- HERO BANNER -->
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(6,182,212,0.08));border:1px solid var(--border-hover);border-radius:var(--radius-xl);padding:28px 32px;margin-bottom:28px;display:flex;align-items:center;gap:24px;" class="animate-in">
+        <div style="font-size:52px;">🔄</div>
+        <div>
+          <h2 style="font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:4px;">US Two-Way SMS API Pricing & Cost Engine</h2>
+          <p style="font-size:14px;color:var(--text-muted);max-width:640px;">Compare inbound & outbound conversational rates from top US 2-way providers. One-way push gateways (like AWS SNS) are excluded to ensure complete bidirectional compliance.</p>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:11px;color:var(--text-muted);">Recommended 2-Way Provider</div>
+          <div style="font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--primary-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Twilio 2-Way</div>
+        </div>
+      </div>
+
+      <!-- COMPARISON TABLE -->
+      <div class="card mb-24 animate-in" style="animation-delay:0.05s;padding:0;overflow:hidden;">
+        <div style="padding:20px 20px 0;border-bottom:1px solid var(--border);">
+          <div class="card-title">📊 Two-Way SMS Provider Matrix — US Market</div>
+        </div>
+
+        <div class="provider-row header" style="border-radius:0;">
+          <div>2-Way Provider</div>
+          <div>Outbound Rate</div>
+          <div>Inbound Rate (2-Way)</div>
+          <div>10DLC Number</div>
+          <div>Two-Way Features</div>
+          <div style="text-align:center;">Select</div>
+        </div>
+
+        <div id="providerTable"></div>
+      </div>
+
+      <div class="grid grid-2 mb-24" style="gap:24px;">
+        <!-- CALCULATOR -->
+        <div class="card animate-in" style="animation-delay:0.1s;">
+          <div class="card-title mb-4">🧮 Cost Calculator</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Enter your monthly volume to compare costs</div>
+
+          <div class="form-group">
+            <label class="form-label">Monthly SMS Volume</label>
+            <input type="range" id="volumeSlider" min="100" max="100000" step="100" value="10000"
+              oninput="updateCalc()" style="width:100%;accent-color:var(--primary);margin-bottom:8px;" />
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);">
+              <span>100</span>
+              <span id="volumeDisplay" style="font-weight:700;color:var(--primary-light);font-size:14px;">10,000 SMS</span>
+              <span>100,000</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message Length</label>
+            <select class="form-select" id="msgLength" onchange="updateCalc()">
+              <option value="1">Standard (≤160 chars) — 1 credit</option>
+              <option value="2">Long (161–306 chars) — 2 credits</option>
+              <option value="3">Extra Long (307+ chars) — 3 credits</option>
+            </select>
+          </div>
+
+          <div class="calc-result mt-16" id="calcResult">
+            <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:16px;">Monthly Cost by Provider:</div>
+            <div id="calcBreakdown" style="display:grid;gap:10px;"></div>
+          </div>
+        </div>
+
+        <!-- CHART -->
+        <div class="card animate-in" style="animation-delay:0.15s;">
+          <div class="card-title mb-16">📈 Cost vs. Volume Chart</div>
+          <div class="chart-container-lg">
+            <canvas id="pricingChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURES DEEP DIVE -->
+      <div class="card animate-in" style="animation-delay:0.2s;">
+        <div class="card-title mb-20">🔍 Feature Comparison — US SMS Providers</div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;" id="featureCards"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/pricing.js?v=5"></script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function() {
+    var saved = localStorage.getItem('sms_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'sms_theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        var btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+          btn.setAttribute('data-theme', e.newValue);
+          btn.title = e.newValue === 'light' ? '👁️ Light Mode active — Click for Dark Mode' : '👁️ Dark Mode active — Click for Light Mode';
+        }
+      }
+    });
+  })();
+</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BulkSend — Bulk SMS Dashboard</title>
+  <meta name="description" content="US Bulk SMS Platform — Send personalized SMS to thousands of contacts. Track campaigns, monitor delivery and manage costs." />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .activity-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .activity-dot.success { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .activity-dot.warning { background: var(--warning); }
+    .activity-dot.info { background: var(--primary); }
+    .mini-chart { height: 60px; }
+    .campaign-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .campaign-row:last-child { border-bottom: none; }
+    .delivery-bar-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .delivery-bar-label { width: 90px; font-size: 12px; color: var(--text-muted); }
+    .delivery-bar-val { width: 44px; font-size: 12px; font-weight: 600; text-align: right; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    <div class="topbar" id="topbar">
+      <div class="topbar-title">
+        <h1>Dashboard</h1>
+        <p>Manage SMS &amp; 2-Way communication</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span style="color:var(--text-muted);font-size:14px;">🔍</span>
+          <input type="text" placeholder="Search..." id="globalSearch" />
+        </div>
+        <button class="icon-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Dark / Light Mode" aria-label="Toggle Theme">
+          <span style="font-size:18px;line-height:1;">👁️</span>
+        </button>
+        <div class="icon-btn notif-btn" title="Notifications">
+          🔔<span class="notif-dot"></span>
+        </div>
+        <div class="icon-btn" title="Help">❓</div>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- KPI CARDS -->
+      <div class="grid grid-4 mb-24 animate-in">
+        <div class="stat-card primary">
+          <div class="stat-card-icon">📤</div>
+          <div class="stat-value" id="kpiSent">—</div>
+          <div class="stat-label">Messages Sent</div>
+          <div class="stat-change up">↑ 12.4% this week</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-card-icon">✅</div>
+          <div class="stat-value" id="kpiDelivered">—</div>
+          <div class="stat-label">Delivered</div>
+          <div class="stat-change up">↑ 96.8% rate</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-card-icon">❌</div>
+          <div class="stat-value" id="kpiFailed">—</div>
+          <div class="stat-label">Failed / Undelivered</div>
+          <div class="stat-change down">↓ 3.2% failure</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-card-icon">💵</div>
+          <div class="stat-value" id="kpiCost">—</div>
+          <div class="stat-label">Total Spend (USD)</div>
+          <div class="stat-change up">↑ Twilio API</div>
+        </div>
+      </div>
+
+      <!-- ACTIVE TWO-WAY COMMUNICATION API SHOWCASE -->
+      <div class="card mb-24 animate-in" style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(16,185,129,0.06));border:1px solid rgba(99,102,241,0.3);padding:18px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:24px;">
+              🔄
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <span style="font-size:16px;font-weight:700;color:var(--text-primary);">Active Two-Way Communication API:</span>
+                <span style="font-size:15px;font-weight:800;color:var(--primary-light);" id="dashboardActive2WayApi">Twilio Two-Way Messaging API</span>
+                <span class="badge badge-success" style="font-size:11px;">● Inbound Webhook Live</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-secondary);">
+                Bidirectional Route • US 10DLC Number: <strong id="dashInboundPhone" style="color:var(--text-primary);">+1 (500) 555-0006</strong> • Inbound Webhook: <code style="color:var(--accent);">https://api.bulksend.io/v1/webhooks/inbound</code>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;">
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:var(--text-muted);">Receiver Inbound Messages</div>
+              <div style="font-size:18px;font-weight:800;color:var(--success-light);" id="kpiInboundTotal">0</div>
+            </div>
+            <a href="inbox.html" class="btn btn-primary" style="display:flex;align-items:center;gap:8px;padding:10px 18px;">
+              <span>💬 Open 2-Way Inbox</span>
+              <span class="badge badge-danger" id="dashUnreadPill" style="font-size:11px;padding:2px 8px;">0 unread</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: Charts -->
+      <div class="grid grid-2 mb-24">
+        <div class="card animate-in" style="animation-delay:0.05s">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📈 Messages Sent & Received (Last 7 Days)</div>
+              <div class="card-subtitle">Bidirectional daily volume breakdown</div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-outline btn-sm">Week</button>
+              <button class="btn btn-primary btn-sm">Month</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+        <div class="card animate-in" style="animation-delay:0.1s">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📊 Delivery & Response Status</div>
+              <div class="card-subtitle">Two-way distribution</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:24px;height:240px;">
+            <div class="donut-container">
+              <canvas id="donutChart"></canvas>
+            </div>
+            <div style="flex:1;">
+              <div class="delivery-bar-row">
+                <div class="delivery-bar-label" style="color:var(--success)">✅ Delivered</div>
+                <div style="flex:1"><div class="progress-bar"><div class="progress-fill" id="delivProgressFill" style="width:96%;background:linear-gradient(90deg,var(--success),var(--success-light))"></div></div></div>
+                <div class="delivery-bar-val" id="delivPctVal">96.2%</div>
+              </div>
+              <div class="delivery-bar-row">
+                <div class="delivery-bar-label" style="color:var(--danger)">❌ Failed</div>
+                <div style="flex:1"><div class="progress-bar"><div class="progress-fill" id="failProgressFill" style="width:3.2%;background:linear-gradient(90deg,var(--danger),var(--danger-light))"></div></div></div>
+                <div class="delivery-bar-val" id="failPctVal">3.2%</div>
+              </div>
+              <div class="delivery-bar-row">
+                <div class="delivery-bar-label" style="color:var(--warning)">⏳ Pending</div>
+                <div style="flex:1"><div class="progress-bar"><div class="progress-fill" id="pendProgressFill" style="width:0.6%;background:linear-gradient(90deg,var(--warning),var(--warning-light))"></div></div></div>
+                <div class="delivery-bar-val" id="pendPctVal">0.6%</div>
+              </div>
+              <div style="margin-top:20px;padding:12px;background:var(--success-bg);border-radius:var(--radius-sm);border:1px solid rgba(16,185,129,0.2);">
+                <div style="font-size:11px;color:var(--success-light);font-weight:600;" id="activeProviderLabel">📡 2-Way Provider: Twilio</div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;" id="activeProviderSub">US Long Code • $0.0079 outbound / $0.0075 inbound</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3: Campaign Activity + Live Receiver Messages (Two-Way) -->
+      <div class="grid grid-2 mb-24">
+        <div class="card animate-in" style="animation-delay:0.15s">
+          <div class="card-header">
+            <div class="card-title">🚀 Active Campaigns</div>
+            <a href="campaigns.html" class="btn btn-outline btn-sm">View All</a>
+          </div>
+          <div id="campaignList"></div>
+        </div>
+
+        <div class="card animate-in" style="animation-delay:0.2s">
+          <div class="card-header">
+            <div class="card-title">💬 Live Receiver Messages (Two-Way)</div>
+            <a href="inbox.html" class="btn btn-outline btn-sm">Open 2-Way Inbox →</a>
+          </div>
+          <div id="inboundFeed"></div>
+        </div>
+      </div>
+
+      <!-- ROW 4: Quick Actions + Provider Summary -->
+      <div class="grid grid-2">
+        <div class="card animate-in" style="animation-delay:0.25s">
+          <div class="card-title mb-16">⚡ Quick Actions</div>
+          <div class="grid grid-2 gap-12">
+            <a href="inbox.html" class="btn btn-primary" style="justify-content:center;padding:16px;flex-direction:column;gap:6px;height:80px;">
+              <span style="font-size:22px;">💬</span>
+              <span>2-Way Inbox</span>
+            </a>
+            <a href="campaigns.html" class="btn btn-outline" style="justify-content:center;padding:16px;flex-direction:column;gap:6px;height:80px;">
+              <span style="font-size:22px;">📤</span>
+              <span>New Campaign</span>
+            </a>
+            <a href="contacts.html" class="btn btn-outline" style="justify-content:center;padding:16px;flex-direction:column;gap:6px;height:80px;">
+              <span style="font-size:22px;">👥</span>
+              <span>Add Contacts</span>
+            </a>
+            <a href="pricing.html" class="btn btn-outline" style="justify-content:center;padding:16px;flex-direction:column;gap:6px;height:80px;">
+              <span style="font-size:22px;">💰</span>
+              <span>2-Way Pricing</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="card animate-in" style="animation-delay:0.3s">
+          <div class="card-title mb-16">💰 Cost Summary (This Month)</div>
+          <div style="display:grid;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+              <span style="font-size:13px;color:var(--text-secondary);">📱 SMS Credits Used</span>
+              <span id="costCredits" style="font-weight:700;color:var(--primary-light);">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+              <span style="font-size:13px;color:var(--text-secondary);">💵 Avg. Cost per SMS</span>
+              <span style="font-weight:700;color:var(--accent);" id="costAvgPerSms">$0.0079</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);">
+              <span style="font-size:13px;color:var(--text-secondary);">🏆 Active Provider</span>
+              <span style="font-weight:700;color:var(--text-primary);" id="costActiveProvider">Twilio</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(6,182,212,0.05));border-radius:var(--radius-sm);border:1px solid var(--border-hover);">
+              <span style="font-size:13px;color:var(--text-secondary);">💸 Total Spend</span>
+              <span id="costTotal" style="font-weight:800;font-size:18px;background:linear-gradient(135deg,var(--primary-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">—</span>
+            </div>
+          </div>
+          <a href="pricing.html" class="btn btn-outline w-full mt-16" style="justify-content:center;">Compare All Providers</a>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </main>
+
+  <script src="js/app.js?v=5"></script>
+  <script src="js/dashboard.js?v=5"></script>
+</body>
+</html>

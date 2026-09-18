@@ -1,0 +1,112 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  balance      Float      @default(25.0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  contacts     Contact[]
+  templates    Template[]
+  campaigns    Campaign[]
+  messages     Message[]
+  settings     Setting?
+}
+
+model ContactGroup {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String?   @default("#6366f1")
+  contacts  Contact[]
+  createdAt DateTime  @default(now())
+}
+
+model Contact {
+  id        String        @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  status    String        @default("active") // active, unsubscribed, bounced
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId   String?
+  group     ContactGroup? @relation(fields: [groupId], references: [id])
+  messages  Message[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([phone])
+}
+
+model Template {
+  id        String     @id @default(cuid())
+  name      String
+  content   String
+  category  String     @default("General") // Onboarding, Promotions, Transactional, Reminders
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId  String?
+  template    Template? @relation(fields: [templateId], references: [id])
+  groupName   String?   @default("All Contacts")
+  status      String    @default("completed") // draft, scheduled, running, completed, paused
+  scheduledAt DateTime?
+  sentCount   Int       @default(0)
+  delivCount  Int       @default(0)
+  failedCount Int       @default(0)
+  cost        Float     @default(0.0)
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id])
+  campaignId  String?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+  direction   String    @default("outbound") // outbound, inbound
+  toPhone     String
+  fromPhone   String?
+  content     String
+  status      String    @default("delivered") // delivered, sent, failed, pending
+  cost        Float     @default(0.0079)
+  providerSid String?
+  sentAt      DateTime  @default(now())
+
+  @@index([sentAt])
+  @@index([toPhone])
+}
+
+model Setting {
+  id         String   @id @default(cuid())
+  userId     String?  @unique
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String   @default("twilio")
+  accountSid String?  @default("")
+  authToken  String?  @default("")
+  fromPhone  String?  @default("")
+  balance    Float    @default(25.0)
+  updatedAt  DateTime @updatedAt
+}
