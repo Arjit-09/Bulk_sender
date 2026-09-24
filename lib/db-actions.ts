@@ -1,7 +1,8 @@
 'use server';
 
 import prisma from './prisma';
-import { sendTwilioSms, fetchTwilioInboundMessages } from './twilio';
+import { fetchTwilioInboundMessages } from './twilio';
+import { dispatchSms } from './sms';
 
 export type DbStatus = {
   connected: boolean;
@@ -330,8 +331,8 @@ export async function createAndRunCampaign(data: {
       ? templateContent.replace(/\{\{name\}\}/gi, c.name).replace(/\{\{phone\}\}/gi, c.phone)
       : 'Hello from Bulk SMS Platform';
 
-    // Dispatch via Twilio if configured, or simulated delivery
-    const twilioRes = await sendTwilioSms(c.phone, text);
+    // Dispatch via Telnyx/Twilio if configured, or simulated delivery
+    const twilioRes = await dispatchSms(c.phone, text);
     const isSuccess = twilioRes.success;
     const status = isSuccess ? 'delivered' : 'failed';
 
@@ -428,8 +429,8 @@ export async function getMessagesForPhone(phone: string) {
 export async function sendDirectMessage(toPhone: string, content: string) {
   const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
 
-  // Dispatch via Twilio if configured
-  const twilioRes = await sendTwilioSms(toPhone, content.trim());
+  // Dispatch via Telnyx/Twilio if configured
+  const twilioRes = await dispatchSms(toPhone, content.trim());
   const status = twilioRes.success ? 'delivered' : 'failed';
 
   const msg = await prisma.message.create({
@@ -505,16 +506,17 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data: {
+  provider?: string;
   accountSid?: string;
   authToken?: string;
   fromPhone?: string;
   balance?: number;
 }) {
-  let setting = await prisma.setting.findFirst();
+  const setting = await prisma.setting.findFirst();
   if (!setting) {
     return await prisma.setting.create({
       data: {
-        provider: 'twilio',
+        provider: data.provider || (process.env.TELNYX_API_KEY ? 'telnyx' : 'twilio'),
         accountSid: data.accountSid || '',
         authToken: data.authToken || '',
         fromPhone: data.fromPhone || '',
@@ -525,6 +527,7 @@ export async function updateSettings(data: {
   return await prisma.setting.update({
     where: { id: setting.id },
     data: {
+      provider: data.provider !== undefined ? data.provider : setting.provider,
       accountSid: data.accountSid,
       authToken: data.authToken,
       fromPhone: data.fromPhone,
@@ -545,4 +548,8 @@ export async function clearAllData() {
 
 export async function syncTwilioInbound() {
   return await fetchTwilioInboundMessages();
+}
+
+export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string; provider?: string }) {
+  return await dispatchSms(toPhone, 'Test message from Bulk SMS Platform: Telnyx integration connected successfully! 🚀', override);
 }

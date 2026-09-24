@@ -7,10 +7,11 @@ import { sendDirectMessage, getContacts, getTemplates } from '@/lib/db-actions';
 interface QuickSendModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onSent?: () => void;
 }
 
-export default function QuickSendModal({ isOpen, onClose, onSuccess }: QuickSendModalProps) {
+export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: QuickSendModalProps) {
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [contacts, setContacts] = useState<any[]>([]);
@@ -69,12 +70,12 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess }: QuickSend
     try {
       const res = await sendDirectMessage(phone, message);
       if (res && (res as any).error) {
-        setStatusMsg(`Saved to PostgreSQL (Twilio Trial notice: ${(res as any).error})`);
-        onSuccess();
+        setStatusMsg(`Notice: ${(res as any).error}`);
+        (onSuccess || onSent)?.();
       } else {
         setPhone('');
         setMessage('');
-        onSuccess();
+        (onSuccess || onSent)?.();
         onClose();
       }
     } catch (err: any) {

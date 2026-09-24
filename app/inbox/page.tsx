@@ -49,6 +49,15 @@ export default function InboxPage() {
     loadMessages();
   }, [loadMessages]);
 
+  // Auto-refresh messages every 3 seconds to catch live inbound SMS replies
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadMessages();
+      loadThreads();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [loadMessages, loadThreads]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
