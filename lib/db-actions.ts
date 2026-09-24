@@ -427,38 +427,43 @@ export async function getMessagesForPhone(phone: string) {
 }
 
 export async function sendDirectMessage(toPhone: string, content: string) {
-  const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
+  try {
+    const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
 
-  // Dispatch via Telnyx/Twilio if configured
-  const twilioRes = await dispatchSms(toPhone, content.trim());
-  const status = twilioRes.success ? 'delivered' : 'failed';
+    // Dispatch via Telnyx/Twilio if configured
+    const twilioRes = await dispatchSms(toPhone, content.trim());
+    const status = twilioRes.success ? 'delivered' : 'failed';
 
-  const msg = await prisma.message.create({
-    data: {
-      contactId: contact?.id || null,
-      direction: 'outbound',
-      toPhone,
-      content: content.trim(),
-      status,
-      cost: 0.0079,
-      providerSid: twilioRes.sid || null,
-    },
-  });
-
-  // Deduct balance
-  const setting = await prisma.setting.findFirst();
-  if (setting) {
-    await prisma.setting.update({
-      where: { id: setting.id },
-      data: { balance: Math.max(0, setting.balance - 0.0079) },
+    const msg = await prisma.message.create({
+      data: {
+        contactId: contact?.id || null,
+        direction: 'outbound',
+        toPhone,
+        content: content.trim(),
+        status,
+        cost: 0.0079,
+        providerSid: twilioRes.sid || null,
+      },
     });
-  }
 
-  if (!twilioRes.success && twilioRes.error) {
-    return { ...msg, error: twilioRes.error };
-  }
+    // Deduct balance
+    const setting = await prisma.setting.findFirst();
+    if (setting) {
+      await prisma.setting.update({
+        where: { id: setting.id },
+        data: { balance: Math.max(0, setting.balance - 0.0079) },
+      });
+    }
 
-  return msg;
+    if (!twilioRes.success && twilioRes.error) {
+      return { ...msg, error: twilioRes.error };
+    }
+
+    return msg;
+  } catch (err: any) {
+    console.error('Error sending direct message:', err);
+    return { error: err?.message || 'Failed to dispatch message.' };
+  }
 }
 
 export async function simulateInboundReply(fromPhone: string, text: string) {
