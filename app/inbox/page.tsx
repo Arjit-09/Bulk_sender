@@ -13,6 +13,7 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,10 +68,19 @@ export default function InboxPage() {
     if (!inputText.trim() || !activePhone) return;
     const text = inputText;
     setInputText('');
+    setSendError(null);
 
-    await sendDirectMessage(activePhone, text);
+    const result = await sendDirectMessage(activePhone, text) as any;
     await loadMessages();
     await loadThreads();
+
+    // If send failed (e.g. Indian number restriction, missing creds), show error
+    if (result?.error || result?.status === 'failed') {
+      setSendError(
+        result?.error ||
+        'Message failed to send. Check your Twilio/Telnyx settings and ensure the destination number is verified.'
+      );
+    }
   };
 
   const handleSimulateReply = async () => {
@@ -95,7 +105,7 @@ export default function InboxPage() {
       const res = await syncTwilioInbound();
       await loadMessages();
       await loadThreads();
-      alert(res.count > 0 ? `Synced ${res.count} new inbound reply/replies from Twilio!` : 'No new inbound replies on your Twilio number.');
+      alert(res.count > 0 ? `Synced ${res.count} new inbound message(s) from your SMS provider!` : 'No new inbound messages found. Make sure your webhook URL is set in Telnyx/Twilio portal.');
     } catch (e: any) {
       alert(e.message || 'Error syncing from Twilio');
     } finally {
@@ -189,7 +199,7 @@ export default function InboxPage() {
                       title="Fetch real inbound SMS replies from Twilio API"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                      <span>{syncing ? 'Syncing...' : 'Sync Twilio Inbound'}</span>
+                      <span>{syncing ? 'Syncing...' : 'Sync Inbound SMS'}</span>
                     </button>
                     <button
                       onClick={handleSimulateReply}
@@ -204,18 +214,38 @@ export default function InboxPage() {
 
                 {/* Messages Stream */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
+
+                  {/* Send error banner */}
+                  {sendError && (
+                    <div className="bg-red-900/40 border border-red-500/50 rounded-xl p-3 text-xs text-red-300 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-red-200 mb-0.5">Send Failed</p>
+                        <p>{sendError}</p>
+                      </div>
+                      <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-200 text-lg leading-none ml-1">×</button>
+                    </div>
+                  )}
+
                   {messages.map((m) => {
                     const isOutbound = m.direction === 'outbound';
+                    const isFailed = m.status === 'failed';
                     return (
                       <div
                         key={m.id}
                         className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                       >
+                        {/* Direction label */}
+                        {!isOutbound && (
+                          <span className="text-[10px] text-[#22d3ee] font-semibold mb-0.5 ml-1">← Inbound</span>
+                        )}
                         <div
                           className={`max-w-md p-3.5 rounded-2xl text-xs ${
                             isOutbound
-                              ? 'bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white rounded-br-xs shadow-md'
-                              : 'bg-[#181a35] text-[#f1f5f9] border border-[#6366f1]/20 rounded-bl-xs'
+                              ? isFailed
+                                ? 'bg-red-900/50 text-red-200 border border-red-500/40 rounded-br-sm'
+                                : 'bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white rounded-br-sm shadow-md'
+                              : 'bg-gradient-to-r from-[#0e7490]/60 to-[#164e63]/60 text-[#e0f2fe] border border-[#06b6d4]/30 rounded-bl-sm'
                           }`}
                         >
                           <p>{m.content}</p>
@@ -225,8 +255,17 @@ export default function InboxPage() {
                             {new Date(m.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isOutbound && (
-                            <span className="flex items-center gap-0.5 text-[#34d399]">
-                              • <CheckCheck className="w-3 h-3 inline" /> {m.status}
+                            <span className={`flex items-center gap-0.5 ${isFailed ? 'text-red-400' : m.status === 'delivered' ? 'text-[#34d399]' : 'text-[#94a3b8]'}`}>
+                              •{' '}
+                              {isFailed
+                                ? <><AlertCircle className="w-3 h-3 inline" /> failed</>
+                                : <><CheckCheck className="w-3 h-3 inline" /> {m.status}</>
+                              }
+                            </span>
+                          )}
+                          {!isOutbound && (
+                            <span className="flex items-center gap-0.5 text-[#22d3ee]">
+                              • <CheckCheck className="w-3 h-3 inline" /> received
                             </span>
                           )}
                         </div>

@@ -15,12 +15,11 @@ export async function sendTwilioSms(toPhone: string, body: string): Promise<Twil
   const authToken = setting?.authToken || process.env.TWILIO_AUTH_TOKEN;
   const fromPhone = setting?.fromPhone || process.env.TWILIO_PHONE_NUMBER;
 
-  // If no credentials configured, return simulated success
+  // If no credentials configured, return an error — don't simulate delivery
   if (!accountSid || !authToken || !fromPhone) {
     return {
-      success: true,
-      sid: `sim_${Math.random().toString(36).substring(2, 12)}`,
-      status: 'delivered',
+      success: false,
+      error: 'Twilio credentials not configured. Go to Settings and add your Account SID, Auth Token, and Twilio phone number.',
     };
   }
 
@@ -38,6 +37,10 @@ export async function sendTwilioSms(toPhone: string, body: string): Promise<Twil
         To: toPhone,
         From: fromPhone,
         Body: body,
+        // StatusCallback allows Twilio to POST delivery receipts (delivered/failed) back to us
+        ...(process.env.NEXT_PUBLIC_APP_URL
+          ? { StatusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/status` }
+          : {}),
       }),
     });
 
@@ -61,10 +64,12 @@ export async function sendTwilioSms(toPhone: string, body: string): Promise<Twil
       };
     }
 
+    // Twilio returns statuses like "queued", "sent", "delivered", "failed"
+    // We map Twilio's initial status; delivery receipts come via webhook
     return {
       success: true,
       sid: data.sid,
-      status: data.status, // e.g. "queued", "sent"
+      status: data.status || 'sent',
     };
   } catch (err: any) {
     console.error('Twilio Network Error:', err);
@@ -87,7 +92,8 @@ export async function fetchTwilioInboundMessages() {
 
   try {
     const authHeader = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json?To=${encodeURIComponent(twilioPhone)}`;
+    // Fetch messages TO the Twilio number (inbound from customers), newest first, up to 100
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json?To=${encodeURIComponent(twilioPhone)}&PageSize=100`;
 
     const response = await fetch(url, {
       headers: { Authorization: `Basic ${authHeader}` },

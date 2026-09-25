@@ -2,6 +2,7 @@
 
 import prisma from './prisma';
 import { fetchTwilioInboundMessages } from './twilio';
+import { fetchTelnyxInboundMessages } from './telnyx';
 import { dispatchSms } from './sms';
 
 export type DbStatus = {
@@ -432,7 +433,11 @@ export async function sendDirectMessage(toPhone: string, content: string) {
 
     // Dispatch via Telnyx/Twilio if configured
     const twilioRes = await dispatchSms(toPhone, content.trim());
-    const status = twilioRes.success ? 'delivered' : 'failed';
+    // Use the actual status from the provider (queued/sent/failed/etc.)
+    // If provider returns a specific status, use it; otherwise infer from success flag
+    const status = twilioRes.success
+      ? (twilioRes.status && ['delivered', 'sent', 'queued'].includes(twilioRes.status) ? twilioRes.status : 'sent')
+      : 'failed';
 
     const msg = await prisma.message.create({
       data: {
@@ -551,7 +556,17 @@ export async function clearAllData() {
   return { success: true };
 }
 
+// Sync inbound messages — auto-detects provider (Telnyx or Twilio)
 export async function syncTwilioInbound() {
+  const setting = await prisma.setting.findFirst();
+  const isTelnyx =
+    setting?.provider === 'telnyx' ||
+    setting?.authToken?.startsWith('KEY') ||
+    Boolean(process.env.TELNYX_API_KEY);
+
+  if (isTelnyx) {
+    return await fetchTelnyxInboundMessages();
+  }
   return await fetchTwilioInboundMessages();
 }
 
