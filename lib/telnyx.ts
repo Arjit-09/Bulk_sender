@@ -51,9 +51,16 @@ export async function sendTelnyxSms(
   }
 
   try {
+    // Normalize phone numbers: strip spaces, parentheses, dashes
+    const cleanFrom = fromPhone.replace(/[\s()-]/g, '').trim();
+    let cleanTo = toPhone.replace(/[\s()-]/g, '').trim();
+    if (!cleanTo.startsWith('+')) {
+      cleanTo = '+' + cleanTo;
+    }
+
     const requestBody: Record<string, string> = {
-      from: fromPhone.trim(),
-      to: toPhone.trim(),
+      from: cleanFrom.startsWith('+') ? cleanFrom : '+' + cleanFrom,
+      to: cleanTo,
       text: body,
     };
 

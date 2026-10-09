@@ -12,6 +12,7 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -60,14 +61,19 @@ export default function TemplatesPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar onOpenQuickSend={() => setIsQuickSendOpen(true)} />
+      <Sidebar
+        onOpenQuickSend={() => setIsQuickSendOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Topbar
         title="SMS Templates"
         subtitle="Reusable message templates with dynamic variable tags"
         dbConnected={true}
+        onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="ml-64 pt-20 p-8 space-y-6">
+      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">Template Library</h2>
@@ -75,7 +81,7 @@ export default function TemplatesPage() {
           </div>
           <button
             onClick={() => setIsAddOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Template</span>
@@ -141,7 +147,7 @@ export default function TemplatesPage() {
       {/* Add Template Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white">Create SMS Template</h3>
 
             <form onSubmit={handleCreate} className="space-y-3">
@@ -190,7 +196,7 @@ export default function TemplatesPage() {
 
               <div>
                 <span className="text-[11px] text-[#94a3b8] block mb-1">Insert Dynamic Variable:</span>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {['{{name}}', '{{phone}}', '{{code}}', '{{link}}'].map((tag) => (
                     <button
                       key={tag}

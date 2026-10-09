@@ -17,13 +17,14 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark" className="h-full" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
           }}
         />
       </head>
-      <body className={`${inter.className} min-h-full antialiased`}>
+      <body className={`${inter.className} min-h-full antialiased overflow-x-hidden`}>
         {children}
       </body>
     </html>

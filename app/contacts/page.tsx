@@ -16,6 +16,7 @@ export default function ContactsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -105,17 +106,22 @@ export default function ContactsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar onOpenQuickSend={() => setIsQuickSendOpen(true)} />
+      <Sidebar
+        onOpenQuickSend={() => setIsQuickSendOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Topbar
         title="Contact Directory"
         subtitle="Manage phone numbers, groups, and CSV imports in PostgreSQL"
         dbConnected={true}
+        onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="ml-64 pt-20 p-8 space-y-6">
+      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 sm:max-w-md">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-[#94a3b8] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -140,17 +146,17 @@ export default function ContactsPage() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => setIsImportOpen(true)}
-              className="px-4 py-2 rounded-xl bg-[#12142e] border border-[#6366f1]/25 text-[#818cf8] hover:text-white hover:bg-[#181a35] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial justify-center px-4 py-2 rounded-xl bg-[#12142e] border border-[#6366f1]/25 text-[#818cf8] hover:text-white hover:bg-[#181a35] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Import CSV</span>
             </button>
             <button
               onClick={() => setIsAddOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Contact</span>
@@ -159,7 +165,7 @@ export default function ContactsPage() {
         </div>
 
         {/* Contacts Table */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -171,23 +177,23 @@ export default function ContactsPage() {
           </div>
 
           {contacts.length === 0 ? (
-            <div className="p-12 border border-dashed border-[#6366f1]/20 rounded-xl bg-[#12142e]/40 text-center flex flex-col items-center justify-center">
+            <div className="p-8 sm:p-12 border border-dashed border-[#6366f1]/20 rounded-xl bg-[#12142e]/40 text-center flex flex-col items-center justify-center">
               <Users className="w-10 h-10 text-[#94a3b8] mb-2 opacity-50" />
               <p className="text-sm font-medium text-white">No Contacts Found</p>
               <p className="text-xs text-[#94a3b8] max-w-sm mt-1 mb-4">
                 Add contacts manually or import your customer list via CSV to begin sending messages.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => setIsAddOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#6366f1] text-white text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#6366f1] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add First Contact</span>
                 </button>
                 <button
                   onClick={() => setIsImportOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#181a35] border border-[#6366f1]/20 text-[#818cf8] text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#181a35] border border-[#6366f1]/20 text-[#818cf8] text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>Import CSV Sample</span>
@@ -195,19 +201,20 @@ export default function ContactsPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider">
-                    <th className="pb-3">Name</th>
-                    <th className="pb-3">Phone Number</th>
-                    <th className="pb-3">Email Address</th>
-                    <th className="pb-3">Group</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#6366f1]/10 text-white">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="min-w-[640px] px-4 sm:px-0">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider whitespace-nowrap">
+                      <th className="pb-3 pr-4">Name</th>
+                      <th className="pb-3 pr-4">Phone Number</th>
+                      <th className="pb-3 pr-4">Email Address</th>
+                      <th className="pb-3 pr-4">Group</th>
+                      <th className="pb-3 pr-4">Status</th>
+                      <th className="pb-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#6366f1]/10 text-white whitespace-nowrap">
                   {contacts.map((c) => (
                     <tr key={c.id} className="hover:bg-[#181a35]/50 transition-colors">
                       <td className="py-3 font-semibold flex items-center gap-2.5">
@@ -257,14 +264,15 @@ export default function ContactsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
+        )}
         </div>
       </main>
 
       {/* Add Contact Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white">Add New Contact</h3>
             {formMsg && <p className="text-xs text-[#ef4444]">{formMsg}</p>}
             <form onSubmit={handleCreateContact} className="space-y-3">
@@ -333,7 +341,7 @@ export default function ContactsPage() {
       {/* Import CSV Modal */}
       {isImportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white">Import Contacts from CSV</h3>
             <p className="text-xs text-[#94a3b8]">
               Paste CSV text formatted as: <code>Name, Phone, Email, Group</code>
@@ -348,7 +356,7 @@ export default function ContactsPage() {
                 className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-[#6366f1] resize-none"
                 required
               />
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -360,7 +368,7 @@ export default function ContactsPage() {
                 >
                   Load Sample CSV Rows
                 </button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto justify-end">
                   <button
                     type="button"
                     onClick={() => setIsImportOpen(false)}

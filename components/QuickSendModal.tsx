@@ -91,7 +91,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 shadow-2xl p-6 relative">
+      <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 shadow-2xl p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}

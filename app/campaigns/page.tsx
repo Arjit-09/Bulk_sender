@@ -14,6 +14,7 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Form states
   const [campaignName, setCampaignName] = useState('');
@@ -75,14 +76,19 @@ export default function CampaignsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar onOpenQuickSend={() => setIsQuickSendOpen(true)} />
+      <Sidebar
+        onOpenQuickSend={() => setIsQuickSendOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Topbar
         title="Campaigns Management"
         subtitle="Schedule and launch high-volume targeted SMS campaigns"
         dbConnected={true}
+        onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="ml-64 pt-20 p-8 space-y-6">
+      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">Active & Past Campaigns</h2>
@@ -92,7 +98,7 @@ export default function CampaignsPage() {
           </div>
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Campaign</span>
@@ -195,7 +201,7 @@ export default function CampaignsPage() {
       {/* Create Campaign Modal */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white">Create & Run Campaign</h3>
             <p className="text-xs text-[#94a3b8]">
               Dispatches SMS directly to contacts in the chosen group and records dynamic logs.

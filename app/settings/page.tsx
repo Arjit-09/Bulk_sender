@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [dbStatus, setDbStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -140,19 +141,25 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar balance={balance} onOpenQuickSend={() => setIsQuickSendOpen(true)} />
+      <Sidebar
+        balance={balance}
+        onOpenQuickSend={() => setIsQuickSendOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Topbar
         title="Settings & SMS Gateways"
         subtitle="Configure Telnyx or Twilio live credentials & test SMS delivery"
         dbConnected={isConnected}
+        onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="ml-64 pt-20 p-8 space-y-6 max-w-4xl">
+      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6 lg:max-w-4xl">
         {/* Database Diagnostics Card */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#6366f1]/20 flex items-center justify-center text-[#818cf8]">
+              <div className="w-10 h-10 rounded-xl bg-[#6366f1]/20 flex items-center justify-center text-[#818cf8] flex-shrink-0">
                 <Database className="w-5 h-5" />
               </div>
               <div>
@@ -195,10 +202,10 @@ export default function SettingsPage() {
         </div>
 
         {/* SMS Gateway Configuration Card */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#06b6d4]/20 flex items-center justify-center text-[#22d3ee]">
+              <div className="w-10 h-10 rounded-xl bg-[#06b6d4]/20 flex items-center justify-center text-[#22d3ee] flex-shrink-0">
                 <Key className="w-5 h-5" />
               </div>
               <div>
@@ -210,11 +217,11 @@ export default function SettingsPage() {
             </div>
 
             {/* Provider Switcher Tabs */}
-            <div className="flex bg-[#0d0f26] p-1 rounded-xl border border-[#6366f1]/20">
+            <div className="flex bg-[#0d0f26] p-1 rounded-xl border border-[#6366f1]/20 self-start sm:self-auto w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setProvider('telnyx')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-initial justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   provider === 'telnyx'
                     ? 'bg-[#10b981] text-white shadow-lg shadow-emerald-500/30'
                     : 'text-[#94a3b8] hover:text-white'
@@ -226,7 +233,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setProvider('twilio')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   provider === 'twilio'
                     ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-600/30'
                     : 'text-[#94a3b8] hover:text-white'
@@ -335,7 +342,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold hover:bg-[#4f46e5] transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold hover:bg-[#4f46e5] transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Configuration'}
               </button>
@@ -344,9 +351,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Live Test Send SMS Card */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#10b981]/30 space-y-4">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#10b981]/30 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#10b981]/20 flex items-center justify-center text-[#34d399]">
+            <div className="w-10 h-10 rounded-xl bg-[#10b981]/20 flex items-center justify-center text-[#34d399] flex-shrink-0">
               <Send className="w-5 h-5" />
             </div>
             <div>
@@ -370,7 +377,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleTestSms}
                 disabled={testing}
-                className="px-5 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold transition-all cursor-pointer shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold transition-all cursor-pointer shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {testing ? (
                   <>
@@ -412,9 +419,9 @@ export default function SettingsPage() {
         </div>
 
         {/* Database Clean State Reset */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#ef4444]/20 space-y-4">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#ef4444]/20 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#ef4444]/20 flex items-center justify-center text-[#f87171]">
+            <div className="w-10 h-10 rounded-xl bg-[#ef4444]/20 flex items-center justify-center text-[#f87171] flex-shrink-0">
               <Trash2 className="w-5 h-5" />
             </div>
             <div>
@@ -426,7 +433,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={handleResetData}
-            className="px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-xs font-semibold text-[#f87171] hover:bg-[#ef4444] hover:text-white transition-all cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-xs font-semibold text-[#f87171] hover:bg-[#ef4444] hover:text-white transition-all cursor-pointer"
           >
             Clear All Data
           </button>

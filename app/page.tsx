@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -49,18 +50,24 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar balance={balance} onOpenQuickSend={() => setIsQuickSendOpen(true)} />
+      <Sidebar
+        balance={balance}
+        onOpenQuickSend={() => setIsQuickSendOpen(true)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Topbar
         title="Dashboard & Analytics Overview"
         subtitle="Live PostgreSQL metrics • 100% Dynamic data"
         dbConnected={isConnected}
+        onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
       {/* Main Content Area */}
-      <main className="ml-64 pt-20 p-8 space-y-6">
+      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Connection Notice if PostgreSQL credentials not yet configured */}
         {!isConnected && (
-          <div className="p-4 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex items-start justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[#f59e0b] mt-0.5 flex-shrink-0" />
               <div>
@@ -73,7 +80,7 @@ export default function DashboardPage() {
             </div>
             <Link
               href="/settings"
-              className="px-3.5 py-1.5 rounded-xl bg-[#f59e0b]/20 hover:bg-[#f59e0b]/30 text-[#fbbf24] text-xs font-semibold whitespace-nowrap transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-[#f59e0b]/20 hover:bg-[#f59e0b]/30 text-[#fbbf24] text-xs font-semibold whitespace-nowrap transition-colors self-start sm:self-auto"
             >
               Configure DB &rarr;
             </Link>
@@ -150,7 +157,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Campaigns Table */}
-        <div className="p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -184,43 +191,45 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider">
-                    <th className="pb-3">Campaign Name</th>
-                    <th className="pb-3">Target Group</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Sent</th>
-                    <th className="pb-3 text-right">Delivered</th>
-                    <th className="pb-3 text-right">Cost</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#6366f1]/10 text-white">
-                  {recentCampaigns.map((camp: any) => (
-                    <tr key={camp.id} className="hover:bg-[#181a35]/50 transition-colors">
-                      <td className="py-3 font-semibold">{camp.name}</td>
-                      <td className="py-3 text-[#94a3b8]">{camp.groupName}</td>
-                      <td className="py-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                            camp.status === 'completed'
-                              ? 'bg-[#10b981]/15 text-[#34d399] border border-[#10b981]/30'
-                              : camp.status === 'running'
-                              ? 'bg-[#06b6d4]/15 text-[#22d3ee] border border-[#06b6d4]/30 animate-pulse'
-                              : 'bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/30'
-                          }`}
-                        >
-                          {camp.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right font-medium">{camp.sentCount}</td>
-                      <td className="py-3 text-right font-medium text-[#10b981]">{camp.delivCount}</td>
-                      <td className="py-3 text-right text-[#94a3b8]">${camp.cost.toFixed(4)}</td>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="min-w-[600px] px-4 sm:px-0">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider">
+                      <th className="pb-3">Campaign Name</th>
+                      <th className="pb-3">Target Group</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3 text-right">Sent</th>
+                      <th className="pb-3 text-right">Delivered</th>
+                      <th className="pb-3 text-right">Cost</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[#6366f1]/10 text-white">
+                    {recentCampaigns.map((camp: any) => (
+                      <tr key={camp.id} className="hover:bg-[#181a35]/50 transition-colors">
+                        <td className="py-3 font-semibold">{camp.name}</td>
+                        <td className="py-3 text-[#94a3b8]">{camp.groupName}</td>
+                        <td className="py-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
+                              camp.status === 'completed'
+                                ? 'bg-[#10b981]/15 text-[#34d399] border border-[#10b981]/30'
+                                : camp.status === 'running'
+                                ? 'bg-[#06b6d4]/15 text-[#22d3ee] border border-[#06b6d4]/30 animate-pulse'
+                                : 'bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/30'
+                            }`}
+                          >
+                            {camp.status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right font-medium">{camp.sentCount}</td>
+                        <td className="py-3 text-right font-medium text-[#10b981]">{camp.delivCount}</td>
+                        <td className="py-3 text-right text-[#94a3b8]">${camp.cost.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
