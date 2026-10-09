@@ -116,6 +116,7 @@ export default function InboxPage() {
   };
 
   const activeThread = threads.find((t) => t.phone === activePhone);
+  const isChatActive = Boolean(activePhone) && !showThreadList;
 
   return (
     <div className="min-h-screen bg-[#0a0b1a]">
@@ -133,8 +134,14 @@ export default function InboxPage() {
 
       <main className="lg:ml-64 pt-16 p-2 sm:p-4 lg:p-8 h-[100dvh] flex flex-col">
         <div className="flex-1 flex rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 overflow-hidden shadow-2xl min-h-0">
-          {/* Left Column: Thread List — hidden on mobile when a thread is active */}
-          <div className={`w-full sm:w-80 border-r border-[#6366f1]/15 flex flex-col bg-[#0d0f26] ${activePhone && !showThreadList ? 'hidden sm:flex' : 'flex'}`}>
+          {/* Left Column: Thread List — full width on mobile, hidden on mobile when viewing a chat */}
+          <div
+            className={`
+              ${isChatActive ? 'hidden' : 'flex'} md:flex
+              w-full md:w-80 md:shrink-0
+              border-r border-[#6366f1]/15 flex-col bg-[#0d0f26] min-w-0
+            `}
+          >
             <div className="p-4 border-b border-[#6366f1]/15 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Inbox className="w-4 h-4 text-[#818cf8]" />
@@ -185,8 +192,13 @@ export default function InboxPage() {
             </div>
           </div>
 
-          {/* Right Column: Chat Window — hidden on mobile when showing thread list */}
-          <div className={`flex-1 flex flex-col bg-[#0a0b1a] ${showThreadList && !activePhone ? 'hidden sm:flex' : activePhone ? 'flex' : 'hidden sm:flex'}`}>
+          {/* Right Column: Chat Window — full width on mobile when chat is active, always visible on desktop */}
+          <div
+            className={`
+              ${isChatActive ? 'flex' : 'hidden'} md:flex
+              flex-1 flex-col bg-[#0a0b1a] min-w-0
+            `}
+          >
             {activePhone ? (
               <>
                 {/* Chat Header */}
@@ -195,7 +207,7 @@ export default function InboxPage() {
                     {/* Back button — mobile only */}
                     <button
                       onClick={() => setShowThreadList(true)}
-                      className="sm:hidden p-1.5 rounded-lg text-[#94a3b8] hover:text-white hover:bg-[#181a35] transition-all flex-shrink-0"
+                      className="md:hidden p-1.5 rounded-lg text-[#94a3b8] hover:text-white hover:bg-[#181a35] transition-all flex-shrink-0 cursor-pointer"
                       aria-label="Back to conversations"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -215,25 +227,25 @@ export default function InboxPage() {
                     <button
                       onClick={handleSyncTwilio}
                       disabled={syncing}
-                      className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[#6366f1]/15 hover:bg-[#6366f1]/25 border border-[#6366f1]/30 text-[#818cf8] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                      className="p-1.5 md:px-3 md:py-1.5 rounded-xl bg-[#6366f1]/15 hover:bg-[#6366f1]/25 border border-[#6366f1]/30 text-[#818cf8] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                       title="Fetch real inbound SMS replies from Twilio API"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                      <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync Inbound SMS'}</span>
+                      <span className="hidden md:inline">{syncing ? 'Syncing...' : 'Sync Inbound SMS'}</span>
                     </button>
                     <button
                       onClick={handleSimulateReply}
-                      className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[#06b6d4]/15 hover:bg-[#06b6d4]/25 border border-[#06b6d4]/30 text-[#22d3ee] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="p-1.5 md:px-3 md:py-1.5 rounded-xl bg-[#06b6d4]/15 hover:bg-[#06b6d4]/25 border border-[#06b6d4]/30 text-[#22d3ee] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                       title="Simulate recipient replying via SMS"
                     >
                       <Bot className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Simulate Reply</span>
+                      <span className="hidden md:inline">Simulate Reply</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Messages Stream */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
 
                   {/* Send error banner */}
                   {sendError && (
@@ -296,7 +308,7 @@ export default function InboxPage() {
                 </div>
 
                 {/* Message Input Bar */}
-                <form onSubmit={handleSend} className="p-4 border-t border-[#6366f1]/15 bg-[#0f1129] flex gap-3">
+                <form onSubmit={handleSend} className="p-2.5 sm:p-4 border-t border-[#6366f1]/15 bg-[#0f1129] flex gap-2 sm:gap-3">
                   <input
                     type="text"
                     placeholder={`Message ${activeThread?.name || activePhone}...`}
