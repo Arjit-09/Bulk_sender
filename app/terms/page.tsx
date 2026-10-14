@@ -33,7 +33,7 @@ export default function TermsAndConditions() {
           You can cancel the SMS service at any time by texting <strong>STOP</strong>. You will receive a single confirmation message upon opting out. To re-subscribe, text <strong>START</strong> or contact our customer support.
         </p>
         <p style={{ marginTop: '8px' }}>
-          For help or customer support, text <strong>HELP</strong> at any time or contact us at <strong>support@uberip.com</strong> or call <strong>+1 239-494-5974</strong>.
+          For help or customer support, text <strong>HELP</strong> at any time or contact us at <strong>services@zenithtech.site</strong> or call <strong>+1 888-402-0949</strong>.
         </p>
       </section>
 
@@ -47,9 +47,10 @@ export default function TermsAndConditions() {
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '8px' }}>6. Contact Information</h2>
         <p>
-          <strong>Zenith Service</strong><br />
-          Email: support@uberip.com<br />
-          Phone: +1 239-494-5974
+          <strong>Zenith Tech Services</strong><br />
+          Website: https://zenithtech.site<br />
+          Email: services@zenithtech.site<br />
+          Phone: +1 888-402-0949
         </p>
       </section>
     </div>

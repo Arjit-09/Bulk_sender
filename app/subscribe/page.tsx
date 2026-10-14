@@ -257,7 +257,7 @@ export default function SubscribePage() {
               </p>
               <div className="stop-note">
                 📵 To unsubscribe, reply <strong>STOP</strong> to any message.<br />
-                For help, reply <strong>HELP</strong> or email <a href="mailto:arjit.sharma@hestabit.in" style={{ color: 'rgba(255,255,255,0.55)' }}>arjit.sharma@hestabit.in</a>
+                For help, reply <strong>HELP</strong> or email <a href="mailto:services@zenithtech.site" style={{ color: 'rgba(255,255,255,0.55)' }}>services@zenithtech.site</a>
               </div>
             </div>
           ) : (

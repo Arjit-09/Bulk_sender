@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
           You can cancel the SMS service at any time. Just text <strong>STOP</strong> to our number. After you send the SMS message <strong>STOP</strong> to us, we will send you an SMS message to confirm that you have been unsubscribed. After this, you will no longer receive SMS messages from us.
         </p>
         <p style={{ marginTop: '8px' }}>
-          If you are experiencing issues with the messaging program you can reply with the keyword <strong>HELP</strong> for more assistance, or contact us directly at support@uberip.com.
+          If you are experiencing issues with the messaging program you can reply with the keyword <strong>HELP</strong> for more assistance, or contact us directly at services@zenithtech.site.
         </p>
       </section>
 
@@ -56,9 +56,10 @@ export default function PrivacyPolicy() {
           If you have questions about this Privacy Policy, please contact us at:
         </p>
         <p style={{ marginTop: '4px' }}>
-          <strong>Zenith Service</strong><br />
-          Email: support@uberip.com / zenithservice@uberip.com<br />
-          Phone: +1 239-494-5974
+          <strong>Zenith Tech Services</strong><br />
+          Website: https://zenithtech.site<br />
+          Email: services@zenithtech.site<br />
+          Phone: +1 888-402-0949
         </p>
       </section>
     </div>
