@@ -5,7 +5,11 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
 import { getSettings, updateSettings, checkDatabaseConnection, clearAllData, testSmsConnection } from '@/lib/db-actions';
-import { Settings, Database, ShieldCheck, Key, RefreshCw, AlertCircle, CheckCircle2, Trash2, DollarSign, Send, Radio, Sparkles } from 'lucide-react';
+import {
+  Settings, Database, ShieldCheck, Key, RefreshCw, AlertCircle,
+  CheckCircle2, Trash2, DollarSign, Send, Radio, Sparkles,
+  Phone, Globe, Zap, Server, Lock
+} from 'lucide-react';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -38,7 +42,6 @@ export default function SettingsPage() {
       setSettings(s);
       setDbStatus(db);
       if (s) {
-        // Auto-detect provider
         if (s.provider === 'telnyx' || s.authToken?.startsWith('KEY')) {
           setProvider('telnyx');
         } else if (s.accountSid?.startsWith('AC')) {
@@ -67,55 +70,42 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     setSaveSuccess(false);
+
     try {
       await updateSettings({
         provider,
-        accountSid: provider === 'telnyx' ? '' : accountSid,
+        accountSid: provider === 'twilio' ? accountSid : undefined,
         authToken,
         fromPhone,
-        balance: Number(balance),
+        balance,
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
+      loadData();
     } catch (err) {
       console.error(err);
+      alert('Failed to save settings.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleTestSms = async () => {
-    if (!testPhone.trim()) {
-      alert('Please enter a destination phone number (e.g. +91XXXXXXXXXX or +1XXXXXXXXXX)');
-      return;
-    }
+    if (!testPhone) return;
     setTesting(true);
     setTestResult(null);
+
     try {
-      // Auto-save whatever is currently typed in the form
-      await updateSettings({
-        provider,
-        accountSid: provider === 'telnyx' ? '' : accountSid,
-        authToken,
-        fromPhone,
-        balance: Number(balance),
-      });
-
-      const res = await testSmsConnection(testPhone.trim(), {
-        apiKey: authToken,
-        fromPhone,
-        provider,
-      });
-
-      if (res.success) {
+      const res = await testSmsConnection(testPhone);
+      if (res && res.success) {
         setTestResult({
           success: true,
-          message: `SMS queued/sent successfully via ${provider.toUpperCase()}! Message ID: ${res.sid || 'ok'} (Cost: ~$${res.cost || 0.004})`,
+          message: `Test SMS dispatched! Provider Message SID: ${res.sid || 'Accepted by Gateway'}`,
         });
       } else {
         setTestResult({
           success: false,
-          message: res.error || 'Failed to send SMS.',
+          message: res?.error || 'Test SMS dispatch failed. Check carrier logs.',
         });
       }
     } catch (err: unknown) {
@@ -133,310 +123,325 @@ export default function SettingsPage() {
       return;
     }
     await clearAllData();
-    alert('Database successfully reset to 0 records! Check Dashboard to see clean zero-states.');
+    alert('Database successfully reset to 0 records!');
     loadData();
   };
 
   const isConnected = dbStatus?.connected ?? false;
 
   return (
-    <div className="min-h-screen bg-[#0a0b1a]">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Sidebar
         balance={balance}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        orgName="Acme Corp"
+        planName="Growth"
+        userRole="SUPER_ADMIN"
       />
       <Topbar
-        title="Settings & SMS Gateways"
-        subtitle="Configure Telnyx or Twilio live credentials & test SMS delivery"
+        title="Settings & Gateways"
+        subtitle="Manage Telnyx / Twilio API keys, webhooks, sender IDs, and database connections"
         dbConnected={isConnected}
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6 lg:max-w-4xl">
-        {/* Database Diagnostics Card */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#6366f1]/20 flex items-center justify-center text-[#818cf8] flex-shrink-0">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">PostgreSQL Diagnostics</h3>
-                <p className="text-xs text-[#94a3b8]">Live connection test to PostgreSQL instance</p>
-              </div>
+      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+        <div className="max-w-[1200px] mx-auto space-y-6">
+
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+              <Settings className="w-5 h-5" />
             </div>
-            <button
-              onClick={loadData}
-              className="p-2 rounded-xl bg-[#12142e] border border-[#6366f1]/20 text-[#94a3b8] hover:text-white transition-all cursor-pointer"
-              title="Test database connection"
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Platform Settings</h1>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)]">
+                Carrier integrations, API secrets, and infrastructure diagnostics
+              </p>
+            </div>
+          </div>
+
+          {/* Database Diagnostics Card */}
+          <div className="zs-card p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-heading)]">PostgreSQL Database Connection</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Live connection pooling & Prisma ORM health</p>
+                </div>
+              </div>
+              <button
+                onClick={loadData}
+                className="p-2 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] transition-all cursor-pointer"
+                title="Test database connection"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
+              </button>
+            </div>
+
+            <div
+              className={`p-4 rounded-xl border flex items-start gap-3 ${
+                isConnected
+                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
+                  : 'bg-amber-50/70 border-amber-200 text-amber-800'
+              }`}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#818cf8]' : ''}`} />
-            </button>
-          </div>
-
-          <div
-            className={`p-4 rounded-xl border flex items-start gap-3 ${
-              isConnected
-                ? 'bg-[#10b981]/10 border-[#10b981]/30 text-[#34d399]'
-                : 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#fbbf24]'
-            }`}
-          >
-            {isConnected ? (
-              <CheckCircle2 className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-[#f59e0b] flex-shrink-0 mt-0.5" />
-            )}
-            <div className="text-xs space-y-1">
-              <p className="font-bold text-white">
-                {isConnected ? 'PostgreSQL Connected Successfully' : 'PostgreSQL Authentication Required'}
-              </p>
-              <p className="text-[#94a3b8]">
-                {isConnected
-                  ? 'All models (Contact, Message, Campaign, Template) are connected and querying your live database.'
-                  : `Prisma status: ${dbStatus?.error || 'Authentication failed'}.`}
-              </p>
+              {isConnected ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="text-xs space-y-1">
+                <p className="font-bold text-[var(--text-heading)]">
+                  {isConnected ? 'PostgreSQL Database Connected Successfully' : 'PostgreSQL Authentication Issue'}
+                </p>
+                <p className="text-[var(--text-muted)]">
+                  {isConnected
+                    ? 'All SaaS models (Organization, Campaign, Message, Contact, Template) are connected and querying your live database.'
+                    : `Prisma status: ${dbStatus?.error || 'Authentication pending'}.`}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* SMS Gateway Configuration Card */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* SMS Gateway Configuration Card */}
+          <div className="zs-card p-5 sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center text-cyan-600 flex-shrink-0">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-heading)]">SMS Gateway Credentials</h3>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Switch between Telnyx and Twilio live APIs with automated phone routing
+                  </p>
+                </div>
+              </div>
+
+              {/* Provider Switcher Tabs */}
+              <div className="zs-tab-list self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setProvider('telnyx')}
+                  className={`zs-tab text-xs font-semibold ${provider === 'telnyx' ? 'active' : ''}`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Telnyx (Recommended)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProvider('twilio')}
+                  className={`zs-tab text-xs font-semibold ${provider === 'twilio' ? 'active' : ''}`}
+                >
+                  Twilio
+                </button>
+              </div>
+            </div>
+
+            {saveSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Gateway settings successfully saved and active in PostgreSQL!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSave} className="space-y-4">
+              {provider === 'telnyx' ? (
+                <>
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-600" />
+                    <div>
+                      <span className="font-semibold">Using Telnyx API v2:</span> Enter your Telnyx API Key starting with <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">KEY...</code> and your verified sender number <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">+14795909259</code>.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                      Telnyx API Key (starts with KEY...)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="KEY018xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                    />
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                      Located in Telnyx Portal ➔ Account Settings ➔ API Keys
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                      Telnyx Sender Phone Number (E.164)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+14795909259"
+                      value={fromPhone}
+                      onChange={(e) => setFromPhone(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Twilio Account SID</label>
+                    <input
+                      type="text"
+                      placeholder="ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                      value={accountSid}
+                      onChange={(e) => setAccountSid(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Twilio Auth Token</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••••••••••••••••••••••••••"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Twilio Sender Number (E.164)</label>
+                    <input
+                      type="text"
+                      placeholder="+18005550199"
+                      value={fromPhone}
+                      onChange={(e) => setFromPhone(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                  Account Display Balance ($ USD)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={balance}
+                  onChange={(e) => setBalance(parseFloat(e.target.value) || 0)}
+                  className="zs-input font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="zs-btn-primary"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{saving ? 'Saving…' : 'Save Gateway Configuration'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Live Test Send SMS Card */}
+          <div className="zs-card p-5 sm:p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#06b6d4]/20 flex items-center justify-center text-[#22d3ee] flex-shrink-0">
-                <Key className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                <Send className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">SMS Gateway Configuration</h3>
-                <p className="text-xs text-[#94a3b8]">
-                  Select your active provider and enter credentials to send live SMS.
+                <h3 className="text-sm font-bold text-[var(--text-heading)]">Test Live SMS Dispatch</h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Verify your active {provider.toUpperCase()} credentials with an instant test message
                 </p>
               </div>
             </div>
 
-            {/* Provider Switcher Tabs */}
-            <div className="flex bg-[#0d0f26] p-1 rounded-xl border border-[#6366f1]/20 self-start sm:self-auto w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setProvider('telnyx')}
-                className={`flex-1 sm:flex-initial justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  provider === 'telnyx'
-                    ? 'bg-[#10b981] text-white shadow-lg shadow-emerald-500/30'
-                    : 'text-[#94a3b8] hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Telnyx (Recommended)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setProvider('twilio')}
-                className={`flex-1 sm:flex-initial justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  provider === 'twilio'
-                    ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-[#94a3b8] hover:text-white'
-                }`}
-              >
-                Twilio
-              </button>
-            </div>
-          </div>
-
-          {saveSuccess && (
-            <div className="p-3 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 text-xs text-[#34d399] flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>SMS Gateway settings updated and active!</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSave} className="space-y-4">
-            {provider === 'telnyx' ? (
-              <>
-                <div className="p-3.5 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-xs text-[#34d399] flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-white">Using Telnyx API v2:</span> Enter your Telnyx API Key starting with <code className="text-white bg-[#000]/30 px-1 py-0.5 rounded">KEY...</code> and your Telnyx number <code className="text-white bg-[#000]/30 px-1 py-0.5 rounded">+14795909259</code>.
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[#94a3b8] mb-1">
-                    Telnyx API Key (starts with KEY...)
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="KEY018xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    value={authToken}
-                    onChange={(e) => setAuthToken(e.target.value)}
-                    className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#10b981]"
-                  />
-                  <p className="text-[11px] text-[#64748b] mt-1">
-                    Found in Telnyx Portal ➔ Account Settings ➔ API Keys
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[#94a3b8] mb-1">
-                    Telnyx Sender Phone Number (E.164)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+14795909259"
-                    value={fromPhone}
-                    onChange={(e) => setFromPhone(e.target.value)}
-                    className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#10b981]"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs text-[#94a3b8] mb-1">Twilio Account SID</label>
-                  <input
-                    type="text"
-                    placeholder="ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                    value={accountSid}
-                    onChange={(e) => setAccountSid(e.target.value)}
-                    className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6366f1]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-[#94a3b8] mb-1">Twilio Auth Token</label>
-                  <input
-                    type="password"
-                    placeholder="••••••••••••••••••••••••••••••••"
-                    value={authToken}
-                    onChange={(e) => setAuthToken(e.target.value)}
-                    className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6366f1]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-[#94a3b8] mb-1">Sender Phone Number (E.164)</label>
-                  <input
-                    type="text"
-                    placeholder="+18005550199"
-                    value={fromPhone}
-                    onChange={(e) => setFromPhone(e.target.value)}
-                    className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6366f1]"
-                  />
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="block text-xs text-[#94a3b8] mb-1">Dashboard Display Balance ($ USD)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={balance}
-                onChange={(e) => setBalance(parseFloat(e.target.value) || 0)}
-                className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#6366f1]"
-              />
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold hover:bg-[#4f46e5] transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Configuration'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Live Test Send SMS Card */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#10b981]/30 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#10b981]/20 flex items-center justify-center text-[#34d399] flex-shrink-0">
-              <Send className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Test Live SMS Dispatch</h3>
-              <p className="text-xs text-[#94a3b8]">
-                Send a real test text message to verify your {provider.toUpperCase()} credentials immediately.
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  placeholder="+12025550199 or +91XXXXXXXXXX"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  className="zs-input flex-1 font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleTestSms}
+                  disabled={testing}
+                  className="zs-btn-primary flex-shrink-0"
+                >
+                  {testing ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Sending Test…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send Test SMS</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                💡 US (+1) numbers deliver immediately. Indian (+91) numbers require TRAI DLT approved template headers.
               </p>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                placeholder="+12025550199 or +1XXXXXXXXXX"
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
-                className="flex-1 bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#10b981]"
-              />
-              <button
-                type="button"
-                onClick={handleTestSms}
-                disabled={testing}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold transition-all cursor-pointer shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            {testResult && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
+                  testResult.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
               >
-                {testing ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Sending Test...</span>
-                  </>
+                {testResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-600" />
                 ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Send Test SMS</span>
-                  </>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" />
                 )}
-              </button>
-            </div>
-            <p className="text-[11px] text-[#64748b]">
-              💡 <strong>Tip:</strong> US (+1) destination numbers deliver immediately. Indian (+91) numbers require TRAI enterprise DLT registration on Indian telecom portals.
-            </p>
+                <div>
+                  <span className="font-bold">{testResult.success ? 'Success!' : 'Error:'}</span>{' '}
+                  <span>{testResult.message}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {testResult && (
-            <div
-              className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
-                testResult.success
-                  ? 'bg-[#10b981]/15 border-[#10b981]/30 text-[#34d399]'
-                  : 'bg-[#ef4444]/15 border-[#ef4444]/30 text-[#f87171]'
-              }`}
-            >
-              {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#10b981]" />
-              ) : (
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#ef4444]" />
-              )}
-              <div className="space-y-1">
-                <span className="font-bold">{testResult.success ? 'Success!' : 'Error:'}</span>
-                <p>{testResult.message}</p>
+          {/* Danger Zone: Database Reset */}
+          <div className="zs-card p-5 sm:p-6 border-rose-200/80 bg-rose-50/20 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-rose-800">Clean State Reset</h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Clear all sample campaigns, messages, and contacts to test a clean zero-record state.
+                </p>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Database Clean State Reset */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#ef4444]/20 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#ef4444]/20 flex items-center justify-center text-[#f87171] flex-shrink-0">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Reset Database to Clean State</h3>
-              <p className="text-xs text-[#94a3b8]">
-                Clear all sample campaigns, messages, and contacts to test a clean zero-record state.
-              </p>
-            </div>
+            <button
+              onClick={handleResetData}
+              className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-xs font-semibold text-rose-700 transition-all cursor-pointer"
+            >
+              Reset to Zero Data
+            </button>
           </div>
-          <button
-            onClick={handleResetData}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-xs font-semibold text-[#f87171] hover:bg-[#ef4444] hover:text-white transition-all cursor-pointer"
-          >
-            Clear All Data
-          </button>
+
         </div>
       </main>
 
@@ -444,7 +449,6 @@ export default function SettingsPage() {
         isOpen={isQuickSendOpen}
         onClose={() => setIsQuickSendOpen(false)}
         onSuccess={loadData}
-        onSent={loadData}
       />
     </div>
   );

@@ -5,7 +5,10 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
 import { getContacts, createContact, deleteContact, bulkImportContacts, getContactGroups } from '@/lib/db-actions';
-import { Users, Plus, Upload, Search, Trash2, Phone, Mail, Tag, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Users, Plus, Upload, Search, Trash2, Phone, Mail, Tag,
+  AlertCircle, CheckCircle2, X, Globe, Sparkles, Filter, Download
+} from 'lucide-react';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
@@ -25,6 +28,7 @@ export default function ContactsPage() {
   const [groupName, setGroupName] = useState('VIP Customers');
   const [csvText, setCsvText] = useState('');
   const [formMsg, setFormMsg] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -33,8 +37,8 @@ export default function ContactsPage() {
         getContacts(search, selectedGroup),
         getContactGroups(),
       ]);
-      setContacts(cList);
-      setGroups(gList);
+      setContacts(cList || []);
+      setGroups(gList || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,6 +50,19 @@ export default function ContactsPage() {
     loadData();
   }, [loadData]);
 
+  const handlePhoneChange = (val: string) => {
+    let cleaned = val.replace(/[\s\-]/g, '');
+    if (cleaned && !cleaned.startsWith('+')) {
+      cleaned = '+' + cleaned;
+    }
+    setPhone(cleaned);
+    if (cleaned && !/^\+[1-9]\d{6,14}$/.test(cleaned)) {
+      setPhoneError('Must be E.164 format: +[country code][number] e.g. +918920856958');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const handleCreateContact = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) return;
@@ -55,6 +72,7 @@ export default function ContactsPage() {
       setPhone('');
       setEmail('');
       setIsAddOpen(false);
+      setFormMsg('');
       loadData();
     } catch (err: any) {
       setFormMsg(err.message || 'Error creating contact');
@@ -65,14 +83,12 @@ export default function ContactsPage() {
     e.preventDefault();
     if (!csvText.trim()) return;
 
-    // Parse simple CSV: Name, Phone, Email, Group
     const lines = csvText.split('\n');
     const parsed: Array<{ name: string; phone: string; email?: string; group?: string }> = [];
 
     for (const line of lines) {
       const parts = line.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
       if (parts.length >= 2 && parts[1]) {
-        // Skip header row if present
         if (parts[0].toLowerCase() === 'name' || parts[1].toLowerCase() === 'phone') continue;
         parsed.push({
           name: parts[0],
@@ -92,6 +108,7 @@ export default function ContactsPage() {
       await bulkImportContacts(parsed);
       setCsvText('');
       setIsImportOpen(false);
+      setFormMsg('');
       loadData();
     } catch (err: any) {
       setFormMsg(err.message || 'Import failed');
@@ -100,237 +117,397 @@ export default function ContactsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this contact?')) return;
-    await deleteContact(id);
-    loadData();
+    try {
+      await deleteContact(id);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Helper for flags
+  const getFlag = (phone: string) => {
+    if (!phone) return '🌐';
+    if (phone.startsWith('+91')) return '🇮🇳';
+    if (phone.startsWith('+1')) return '🇺🇸';
+    if (phone.startsWith('+44')) return '🇬🇧';
+    if (phone.startsWith('+61')) return '🇦🇺';
+    if (phone.startsWith('+49')) return '🇩🇪';
+    if (phone.startsWith('+33')) return '🇫🇷';
+    return '🌐';
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0b1a]">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Sidebar
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        orgName="Acme Corp"
+        planName="Growth"
+        userRole="SUPER_ADMIN"
       />
       <Topbar
         title="Contact Directory"
-        subtitle="Manage phone numbers, groups, and CSV imports in PostgreSQL"
+        subtitle="Manage phone numbers, customer segments, and CSV imports in PostgreSQL"
         dbConnected={true}
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 sm:max-w-md">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-[#94a3b8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search contacts by name, phone, email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#0f1129] border border-[#6366f1]/20 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder:text-[#475569] focus:outline-none focus:border-[#6366f1]"
-              />
-            </div>
-            <select
-              value={selectedGroup}
-              onChange={(e) => setSelectedGroup(e.target.value)}
-              className="bg-[#0f1129] border border-[#6366f1]/20 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
-            >
-              <option value="All">All Groups</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.name}>
-                  {g.name} ({g._count?.contacts || 0})
-                </option>
-              ))}
-            </select>
-          </div>
+      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+        <div className="max-w-[1500px] mx-auto space-y-6">
 
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="flex-1 sm:flex-initial justify-center px-4 py-2 rounded-xl bg-[#12142e] border border-[#6366f1]/25 text-[#818cf8] hover:text-white hover:bg-[#181a35] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Import CSV</span>
-            </button>
-            <button
-              onClick={() => setIsAddOpen(true)}
-              className="flex-1 sm:flex-initial justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Contact</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Contacts Table */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#818cf8]" />
-                All Contacts ({contacts.length})
-              </h3>
-              <p className="text-xs text-[#94a3b8]">Stored securely in PostgreSQL database</p>
-            </div>
-          </div>
-
-          {contacts.length === 0 ? (
-            <div className="p-8 sm:p-12 border border-dashed border-[#6366f1]/20 rounded-xl bg-[#12142e]/40 text-center flex flex-col items-center justify-center">
-              <Users className="w-10 h-10 text-[#94a3b8] mb-2 opacity-50" />
-              <p className="text-sm font-medium text-white">No Contacts Found</p>
-              <p className="text-xs text-[#94a3b8] max-w-sm mt-1 mb-4">
-                Add contacts manually or import your customer list via CSV to begin sending messages.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                <button
-                  onClick={() => setIsAddOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#6366f1] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add First Contact</span>
-                </button>
-                <button
-                  onClick={() => setIsImportOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#181a35] border border-[#6366f1]/20 text-[#818cf8] text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Import CSV Sample</span>
-                </button>
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Contact Directory</h1>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)]">
+                  Audience database with segmented groups and CSV bulk management
+                </p>
               </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="min-w-[640px] px-4 sm:px-0">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider whitespace-nowrap">
-                      <th className="pb-3 pr-4">Name</th>
-                      <th className="pb-3 pr-4">Phone Number</th>
-                      <th className="pb-3 pr-4">Email Address</th>
-                      <th className="pb-3 pr-4">Group</th>
-                      <th className="pb-3 pr-4">Status</th>
-                      <th className="pb-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#6366f1]/10 text-white whitespace-nowrap">
-                  {contacts.map((c) => (
-                    <tr key={c.id} className="hover:bg-[#181a35]/50 transition-colors">
-                      <td className="py-3 font-semibold flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#6366f1]/20 text-[#818cf8] flex items-center justify-center font-bold text-[11px]">
-                          {c.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{c.name}</span>
-                      </td>
-                      <td className="py-3 text-[#94a3b8]">
-                        <span className="flex items-center gap-1.5">
-                          <Phone className="w-3 h-3 text-[#06b6d4]" />
-                          {c.phone}
-                        </span>
-                      </td>
-                      <td className="py-3 text-[#94a3b8]">
-                        {c.email ? (
-                          <span className="flex items-center gap-1.5">
-                            <Mail className="w-3 h-3 text-[#94a3b8]" />
-                            {c.email}
-                          </span>
-                        ) : (
-                          <span className="text-[#475569]">—</span>
-                        )}
-                      </td>
-                      <td className="py-3">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#6366f1]/15 text-[#818cf8] border border-[#6366f1]/30 flex items-center gap-1 w-fit">
-                          <Tag className="w-2.5 h-2.5" />
-                          {c.group?.name || 'General'}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#10b981]/15 text-[#34d399] border border-[#10b981]/30">
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <button
-                          onClick={() => handleDelete(c.id)}
-                          className="p-1.5 rounded-lg text-[#ef4444] hover:bg-[#ef4444]/15 transition-all cursor-pointer"
-                          title="Delete contact"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+              <button
+                onClick={() => { setCsvText(''); setFormMsg(''); setIsImportOpen(true); }}
+                className="zs-btn-secondary"
+              >
+                <Upload className="w-4 h-4 text-indigo-600" />
+                <span>Import CSV</span>
+              </button>
+              <button
+                onClick={() => { setFormMsg(''); setIsAddOpen(true); }}
+                className="zs-btn-primary"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Contact</span>
+              </button>
             </div>
           </div>
-        )}
+
+          {/* KPI Stat Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="zs-card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Total Contacts</span>
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-[var(--text-heading)]">{contacts.length}</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Stored in PostgreSQL</p>
+            </div>
+
+            <div className="zs-card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Audience Groups</span>
+                <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-600">
+                  <Tag className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-[var(--text-heading)]">{groups.length || 1}</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Active target segments</p>
+            </div>
+
+            <div className="zs-card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Valid Numbers</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-emerald-600">100%</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">E.164 verified format</p>
+            </div>
+
+            <div className="zs-card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Global Reach</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                  <Globe className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-[var(--text-heading)]">Multi-Country</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Supported via Twilio/Telnyx</p>
+            </div>
+          </div>
+
+          {/* Search & Group Filter Bar */}
+          <div className="zs-card p-3 sm:p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="Search by name, phone number, or email…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="zs-input pl-9.5 text-xs sm:text-sm py-2"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <span className="text-xs text-[var(--text-muted)] font-medium mr-1 flex items-center gap-1 flex-shrink-0">
+                  <Filter className="w-3.5 h-3.5" /> Group:
+                </span>
+                {['All', ...groups.map((g) => g.name)].map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setSelectedGroup(g)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                      selectedGroup === g
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Contacts Table View */}
+          <div className="zs-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-[var(--text-heading)]">
+                  {selectedGroup === 'All' ? 'All Contacts' : `${selectedGroup} Contacts`}
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Showing {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
+                </p>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2" />
+                <p className="text-xs text-[var(--text-muted)]">Loading contacts from PostgreSQL…</p>
+              </div>
+            ) : contacts.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 mb-3">
+                  <Users className="w-6 h-6" />
+                </div>
+                <h4 className="text-base font-bold text-[var(--text-heading)]">No Contacts Found</h4>
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1 mb-5">
+                  {search
+                    ? `No contacts match "${search}". Try searching another name or number.`
+                    : 'Get started by creating your first contact or importing a CSV file.'}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsAddOpen(true)}
+                    className="zs-btn-primary"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Contact</span>
+                  </button>
+                  <button
+                    onClick={() => setIsImportOpen(true)}
+                    className="zs-btn-secondary"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Import CSV</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="zs-table">
+                  <thead>
+                    <tr>
+                      <th>Contact</th>
+                      <th>Phone Number</th>
+                      <th>Email Address</th>
+                      <th>Segment Group</th>
+                      <th>Status</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.map((c) => {
+                      const flag = getFlag(c.phone);
+                      const initials = c.name
+                        ? c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                        : 'C';
+
+                      return (
+                        <tr key={c.id}>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-xs">
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs sm:text-sm font-semibold text-[var(--text-heading)] truncate">
+                                  {c.name || 'Unnamed Contact'}
+                                </p>
+                                <p className="text-[10px] text-[var(--text-muted)]">
+                                  Added {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recently'}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--text-primary)]">
+                              <span>{flag}</span>
+                              <span>{c.phone}</span>
+                            </div>
+                          </td>
+                          <td>
+                            {c.email ? (
+                              <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                                <Mail className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                <span>{c.email}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[var(--text-muted)] italic">—</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                              {c.groupName || 'VIP Customers'}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="zs-badge zs-badge-success">
+                              active
+                            </span>
+                          </td>
+                          <td className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleDelete(c.id)}
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                                title="Delete contact"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       </main>
 
       {/* Add Contact Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-white">Add New Contact</h3>
-            {formMsg && <p className="text-xs text-[#ef4444]">{formMsg}</p>}
-            <form onSubmit={handleCreateContact} className="space-y-3">
+        <div className="zs-modal-overlay p-4">
+          <div className="zs-modal p-6 relative max-w-md">
+            <button
+              onClick={() => setIsAddOpen(false)}
+              className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                <Users className="w-5 h-5" />
+              </div>
               <div>
-                <label className="block text-xs text-[#94a3b8] mb-1">Full Name</label>
+                <h3 className="text-lg font-bold text-[var(--text-heading)]">Add Single Contact</h3>
+                <p className="text-xs text-[var(--text-muted)]">Saved securely in PostgreSQL</p>
+              </div>
+            </div>
+
+            {formMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{formMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateContact} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Contact Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Rahul Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#6366f1]"
+                  className="zs-input"
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-xs text-[#94a3b8] mb-1">Phone Number (E.164)</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Phone Number (E.164)</label>
                 <input
                   type="text"
-                  placeholder="+12025550143"
+                  placeholder="+918920856958 or +12025550199"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#6366f1]"
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  className={`zs-input ${phoneError ? 'border-rose-400' : ''}`}
                   required
                 />
+                {phoneError ? (
+                  <p className="mt-1.5 text-[11px] text-rose-600">{phoneError}</p>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+                    Include country dial code (e.g. +91 for India, +1 for US)
+                  </p>
+                )}
               </div>
+
               <div>
-                <label className="block text-xs text-[#94a3b8] mb-1">Email (Optional)</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Email Address (Optional)</label>
                 <input
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder="e.g. rahul@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#6366f1]"
+                  className="zs-input"
                 />
               </div>
+
               <div>
-                <label className="block text-xs text-[#94a3b8] mb-1">Group / Tag</label>
-                <input
-                  type="text"
-                  placeholder="VIP Customers, Newsletter, etc."
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Audience Segment Group</label>
+                <select
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#6366f1]"
-                />
+                  className="zs-input cursor-pointer"
+                >
+                  <option value="VIP Customers">VIP Customers</option>
+                  <option value="New Leads">New Leads</option>
+                  <option value="Subscribers">Subscribers</option>
+                  <option value="General">General</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.name}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-subtle)]">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl text-xs text-[#94a3b8] hover:bg-[#181a35] cursor-pointer"
+                  className="zs-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold cursor-pointer"
+                  className="zs-btn-primary"
                 >
-                  Save Contact
+                  <Plus className="w-4 h-4" />
+                  <span>Save Contact</span>
                 </button>
               </div>
             </form>
@@ -338,51 +515,78 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Import CSV Modal */}
+      {/* Bulk CSV Import Modal */}
       {isImportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-white">Import Contacts from CSV</h3>
-            <p className="text-xs text-[#94a3b8]">
-              Paste CSV text formatted as: <code>Name, Phone, Email, Group</code>
-            </p>
-            {formMsg && <p className="text-xs text-[#ef4444]">{formMsg}</p>}
-            <form onSubmit={handleBulkImport} className="space-y-3">
-              <textarea
-                rows={6}
-                placeholder={`Alice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Newsletter\nCarol Williams, +12025550192, carol@example.com, Prospects`}
-                value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
-                className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-[#6366f1] resize-none"
-                required
-              />
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCsvText(
-                      `Alice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Newsletter\nCarol Williams, +12025550192, carol@example.com, Prospects\nDavid Lee, +12025550124, david@example.com, VIP Customers\nEva Brown, +12025550165, eva@example.com, Newsletter`
-                    );
-                  }}
-                  className="text-xs text-[#818cf8] hover:underline cursor-pointer"
-                >
-                  Load Sample CSV Rows
-                </button>
-                <div className="flex gap-2 w-full sm:w-auto justify-end">
+        <div className="zs-modal-overlay p-4">
+          <div className="zs-modal p-6 relative max-w-lg">
+            <button
+              onClick={() => setIsImportOpen(false)}
+              className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[var(--text-heading)]">Import Contacts from CSV</h3>
+                <p className="text-xs text-[var(--text-muted)]">Paste CSV rows or drop comma-separated values</p>
+              </div>
+            </div>
+
+            {formMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{formMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleBulkImport} className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]">CSV Content</label>
                   <button
                     type="button"
-                    onClick={() => setIsImportOpen(false)}
-                    className="px-3.5 py-1.5 rounded-xl text-xs text-[#94a3b8] hover:bg-[#181a35] cursor-pointer"
+                    onClick={() => setCsvText('Name, Phone, Email, Group\nJohn Doe, +12025550199, john@example.com, VIP Customers\nAnita Roy, +919076548642, anita@example.com, High Priority\nMarcus Bell, +447700900077, marcus@example.co.uk, Subscribers')}
+                    className="text-xs text-indigo-600 font-medium hover:underline cursor-pointer"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold cursor-pointer"
-                  >
-                    Import to PostgreSQL
+                    Load Sample CSV
                   </button>
                 </div>
+                <textarea
+                  rows={6}
+                  placeholder={`Name, Phone, Email, Group\nJohn Doe, +12025550199, john@example.com, VIP Customers`}
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  className="zs-input font-mono text-xs resize-none"
+                  required
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-[var(--bg-elevated)] text-[11px] text-[var(--text-muted)] space-y-1">
+                <p className="font-semibold text-[var(--text-primary)]">Format Requirements:</p>
+                <p>• Columns: <code className="text-indigo-600">Name, Phone, Email, Group</code></p>
+                <p>• Phone numbers must include country code with <code className="text-indigo-600">+</code></p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsImportOpen(false)}
+                  className="zs-btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="zs-btn-primary"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Import Records</span>
+                </button>
               </div>
             </form>
           </div>

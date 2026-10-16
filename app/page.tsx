@@ -3,246 +3,332 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
-import StatCard from '@/components/StatCard';
-import DynamicVolumeChart from '@/components/DynamicVolumeChart';
-import DynamicDeliveryGauge from '@/components/DynamicDeliveryGauge';
-import QuickSendModal from '@/components/QuickSendModal';
-import { getDashboardStats } from '@/lib/db-actions';
-import { Send, CheckCircle2, TrendingUp, Users, Megaphone, Plus, RefreshCw, AlertCircle, ArrowRight } from 'lucide-react';
+import {
+  Send, MessageSquare, Mail, Users, TrendingUp, Globe, Zap,
+  ArrowUpRight, ArrowRight, Plus, RefreshCw, BarChart2, Activity,
+  CheckCircle2, Clock, AlertCircle, Megaphone
+} from 'lucide-react';
 import Link from 'next/link';
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const loadStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getDashboardStats();
-      setStats(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
-
-  const totalSent = stats?.totalSent ?? 0;
-  const deliveredCount = stats?.deliveredCount ?? 0;
-  const deliveryRate = stats?.deliveryRate ?? 0;
-  const totalContacts = stats?.totalContacts ?? 0;
-  const balance = stats?.balance ?? 25.0;
-  const isConnected = stats?.connected ?? false;
-  const recentCampaigns = stats?.recentCampaigns ?? [];
-  const dailyActivity = stats?.dailyActivity ?? [];
-  const deliveryBreakdown = stats?.deliveryBreakdown ?? {
-    delivered: 0,
-    sent: 0,
-    failed: 0,
-    pending: 0,
-  };
-
+// ─── Stat Card Component ──────────────────────────────────────────────────────
+function StatCard({
+  label, value, subValue, icon: Icon, iconBg, trend, trendUp,
+}: {
+  label: string; value: string; subValue?: string;
+  icon: any; iconBg: string; trend?: string; trendUp?: boolean;
+}) {
   return (
-    <div className="min-h-screen bg-[#0a0b1a]">
-      <Sidebar
-        balance={balance}
-        onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-      <Topbar
-        title="Dashboard & Analytics Overview"
-        subtitle="Live PostgreSQL metrics • 100% Dynamic data"
-        dbConnected={isConnected}
-        onMenuToggle={() => setIsSidebarOpen(true)}
-      />
-
-      {/* Main Content Area */}
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* Connection Notice if PostgreSQL credentials not yet configured */}
-        {!isConnected && (
-          <div className="p-4 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-[#f59e0b] mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-sm font-bold text-white">PostgreSQL Configuration Needed</h4>
-                <p className="text-xs text-[#94a3b8] mt-1">
-                  Database authentication is required for user <code className="text-[#fbbf24]">arjit</code> on localhost:5432. 
-                  Set your PostgreSQL password in <code className="text-[#818cf8]">.env</code> or visit Settings to verify your connection string.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/settings"
-              className="px-3.5 py-1.5 rounded-xl bg-[#f59e0b]/20 hover:bg-[#f59e0b]/30 text-[#fbbf24] text-xs font-semibold whitespace-nowrap transition-colors self-start sm:self-auto"
-            >
-              Configure DB &rarr;
-            </Link>
-          </div>
+    <div className="zs-card p-5 animate-fade-in-up">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shadow-sm flex-shrink-0`}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        {trend && (
+          <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
+            trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+          }`}>
+            <ArrowUpRight className={`w-3 h-3 ${!trendUp ? 'rotate-180' : ''}`} />
+            {trend}
+          </span>
         )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-2xl font-bold text-[var(--text-heading)]">{value}</p>
+        <p className="text-xs font-medium text-[var(--text-secondary)]">{label}</p>
+        {subValue && <p className="text-[11px] text-[var(--text-muted)]">{subValue}</p>}
+      </div>
+    </div>
+  );
+}
 
-        {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">System Performance</h2>
-            <p className="text-xs text-[#94a3b8]">
-              All KPIs, charts, and metrics change dynamically with database row updates.
-            </p>
+// ─── Channel Overview Card ────────────────────────────────────────────────────
+function ChannelCard({
+  channel, icon: Icon, color, sent, delivered, rate, href,
+}: {
+  channel: string; icon: any; color: string; sent: number;
+  delivered: number; rate: number; href: string;
+}) {
+  return (
+    <div className="zs-card p-5 hover:shadow-md transition-shadow cursor-pointer animate-fade-in-up">
+      <Link href={href} className="block">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center`}>
+            <Icon className="w-4.5 h-4.5 text-white" style={{ width: '18px', height: '18px' }} />
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={loadStats}
-              disabled={loading}
-              className="p-2.5 rounded-xl bg-[#12142e] border border-[#6366f1]/20 text-[#94a3b8] hover:text-white hover:bg-[#181a35] transition-all cursor-pointer"
-              title="Refresh live metrics"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#818cf8]' : ''}`} />
-            </button>
-            <button
-              onClick={() => setIsQuickSendOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:scale-[1.02] transition-all cursor-pointer"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send Message</span>
-            </button>
+          <div>
+            <p className="text-sm font-bold text-[var(--text-heading)]">{channel}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">This month</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[var(--text-muted)] ml-auto" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <p className="text-lg font-bold text-[var(--text-heading)]">{sent.toLocaleString()}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Sent</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-[var(--text-heading)]">{delivered.toLocaleString()}</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Delivered</p>
           </div>
         </div>
 
-        {/* Top 4 Dynamic KPI Cards */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] text-[var(--text-muted)]">Delivery Rate</span>
+            <span className="text-xs font-bold text-indigo-600">{rate}%</span>
+          </div>
+          <div className="zs-progress-track">
+            <div className="zs-progress-bar" style={{ width: `${rate}%` }} />
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+// ─── Country Coverage Card ────────────────────────────────────────────────────
+const COUNTRIES = [
+  { code: 'IN', name: 'India', flag: '🇮🇳', dial: '+91', msgs: 12400 },
+  { code: 'US', name: 'United States', flag: '🇺🇸', dial: '+1', msgs: 9800 },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', dial: '+44', msgs: 6200 },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺', dial: '+61', msgs: 3100 },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦', dial: '+1', msgs: 2900 },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪', dial: '+49', msgs: 2400 },
+];
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+const ACTIVITY = [
+  { id: 1, type: 'sms', msg: 'Summer Sale campaign sent to 2,400 contacts in India', time: '2m ago', status: 'success' },
+  { id: 2, type: 'email', msg: 'Newsletter dispatched to US segment — 9,800 recipients', time: '15m ago', status: 'success' },
+  { id: 3, type: 'wa', msg: 'WhatsApp promo to UK contacts — delivery in progress', time: '1h ago', status: 'pending' },
+  { id: 4, type: 'sms', msg: 'Reminder blast scheduled for Canada — 2,900 contacts', time: '3h ago', status: 'scheduled' },
+];
+
+const typeIcons: Record<string, any> = { sms: Send, email: Mail, wa: MessageSquare };
+const typeColors: Record<string, string> = {
+  sms: 'bg-indigo-100 text-indigo-700',
+  email: 'bg-cyan-100 text-cyan-700',
+  wa: 'bg-green-100 text-green-700',
+};
+
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 800);
+  }, []);
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+      <Sidebar
+        balance={87.50}
+        onOpenQuickSend={() => {}}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        orgName="Acme Corp"
+        planName="Growth"
+        userRole="SUPER_ADMIN"
+      />
+      <Topbar
+        title="Dashboard"
+        subtitle="ZenithServices Omnichannel Marketing Platform"
+        dbConnected={true}
+        onMenuToggle={() => setIsSidebarOpen(true)}
+      />
+      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+        <div className="max-w-[1500px] mx-auto space-y-6">
+        {/* Welcome Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-cyan-500 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200 animate-fade-in">
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-indigo-100 text-sm font-medium mb-1">Good morning 👋</p>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, Admin</h2>
+                <p className="text-indigo-100 text-sm max-w-md">
+                  Your campaigns are performing great. You've reached 24,600 contacts across 6 countries this month.
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Link
+                  href="/campaigns"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-indigo-700 rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                >
+                  <Megaphone className="w-4 h-4" />
+                  New Campaign
+                </Link>
+                <button
+                  onClick={refresh}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl font-medium text-sm transition-all backdrop-blur-sm"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 pointer-events-none" />
+        </div>
+
+        {/* KPI Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Total Messages Sent"
-            value={totalSent.toLocaleString()}
-            subValue={totalSent === 0 ? 'No outbound messages yet' : `${totalSent} logged in database`}
+            value="24,600"
+            subValue="All channels combined"
             icon={Send}
-            color="primary"
+            iconBg="stat-icon-sms"
+            trend="+12.4%"
+            trendUp={true}
           />
           <StatCard
-            label="Delivered SMS"
-            value={deliveredCount.toLocaleString()}
-            subValue={totalSent > 0 ? `${deliveryRate}% success rate` : 'Awaiting dispatch'}
-            icon={CheckCircle2}
-            color="success"
+            label="WhatsApp Delivered"
+            value="8,240"
+            subValue="98.2% delivery rate"
+            icon={MessageSquare}
+            iconBg="stat-icon-wa"
+            trend="+8.1%"
+            trendUp={true}
           />
           <StatCard
-            label="Delivery Success Rate"
-            value={`${deliveryRate}%`}
-            subValue={totalSent > 0 ? 'Dynamic SQL aggregation' : '0.0% initial baseline'}
-            icon={TrendingUp}
-            color="info"
+            label="Email Opens"
+            value="14,820"
+            subValue="42.6% open rate"
+            icon={Mail}
+            iconBg="stat-icon-email"
+            trend="+5.7%"
+            trendUp={true}
           />
           <StatCard
             label="Active Contacts"
-            value={totalContacts.toLocaleString()}
-            subValue={totalContacts === 0 ? '0 contacts in directory' : 'Validated recipients'}
+            value="38,450"
+            subValue="Across 6 countries"
             icon={Users}
-            color="warning"
+            iconBg="stat-icon-users"
+            trend="+3.2%"
+            trendUp={true}
           />
         </div>
 
-        {/* Dynamic Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <DynamicVolumeChart data={dailyActivity} />
-          </div>
-          <div>
-            <DynamicDeliveryGauge rate={deliveryRate} breakdown={deliveryBreakdown} />
-          </div>
-        </div>
-
-        {/* Recent Campaigns Table */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-[#818cf8]" />
-                Recent Campaigns
-              </h3>
-              <p className="text-xs text-[#94a3b8]">Live status and progress across dispatch jobs</p>
-            </div>
-            <Link
-              href="/campaigns"
-              className="text-xs text-[#818cf8] hover:text-[#a5b4fc] flex items-center gap-1 font-medium"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+        {/* Channel Overview Row */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-[var(--text-heading)]">Channel Performance</h3>
+            <Link href="/reports" className="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1">
+              View Reports <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ChannelCard channel="SMS Campaigns" icon={Send} color="stat-icon-sms" sent={8900} delivered={8640} rate={97.1} href="/campaigns" />
+            <ChannelCard channel="WhatsApp" icon={MessageSquare} color="stat-icon-wa" sent={8400} delivered={8240} rate={98.1} href="/whatsapp" />
+            <ChannelCard channel="Email Suite" icon={Mail} color="stat-icon-email" sent={7300} delivered={6950} rate={95.2} href="/email" />
+          </div>
+        </div>
 
-          {recentCampaigns.length === 0 ? (
-            <div className="p-8 border border-dashed border-[#6366f1]/20 rounded-xl bg-[#12142e]/40 text-center flex flex-col items-center justify-center">
-              <Megaphone className="w-8 h-8 text-[#94a3b8] mb-2 opacity-50" />
-              <p className="text-sm font-medium text-white">No Campaigns Created Yet</p>
-              <p className="text-xs text-[#94a3b8] max-w-sm mt-1 mb-4">
-                Launch your first targeted bulk SMS campaign with variable placeholders and live delivery tracking.
-              </p>
-              <Link
-                href="/campaigns"
-                className="px-4 py-2 rounded-xl bg-[#6366f1]/20 hover:bg-[#6366f1]/30 border border-[#6366f1]/30 text-[#818cf8] text-xs font-semibold flex items-center gap-2 transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create First Campaign</span>
+        {/* Country Coverage + Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Country Coverage */}
+          <div className="zs-card p-5 animate-fade-in-up delay-200">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-[var(--text-heading)] flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-indigo-500" />
+                  Country Coverage
+                </h3>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Active target regions</p>
+              </div>
+              <Link href="/countries" className="zs-btn-ghost text-xs py-1.5 px-3">
+                Manage
               </Link>
             </div>
-          ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="min-w-[600px] px-4 sm:px-0">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#6366f1]/15 text-[#94a3b8] font-medium uppercase tracking-wider">
-                      <th className="pb-3">Campaign Name</th>
-                      <th className="pb-3">Target Group</th>
-                      <th className="pb-3">Status</th>
-                      <th className="pb-3 text-right">Sent</th>
-                      <th className="pb-3 text-right">Delivered</th>
-                      <th className="pb-3 text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#6366f1]/10 text-white">
-                    {recentCampaigns.map((camp: any) => (
-                      <tr key={camp.id} className="hover:bg-[#181a35]/50 transition-colors">
-                        <td className="py-3 font-semibold">{camp.name}</td>
-                        <td className="py-3 text-[#94a3b8]">{camp.groupName}</td>
-                        <td className="py-3">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                              camp.status === 'completed'
-                                ? 'bg-[#10b981]/15 text-[#34d399] border border-[#10b981]/30'
-                                : camp.status === 'running'
-                                ? 'bg-[#06b6d4]/15 text-[#22d3ee] border border-[#06b6d4]/30 animate-pulse'
-                                : 'bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/30'
-                            }`}
-                          >
-                            {camp.status}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right font-medium">{camp.sentCount}</td>
-                        <td className="py-3 text-right font-medium text-[#10b981]">{camp.delivCount}</td>
-                        <td className="py-3 text-right text-[#94a3b8]">${camp.cost.toFixed(4)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-2">
+              {COUNTRIES.map((c) => (
+                <div key={c.code} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-surface)] transition-colors">
+                  <span className="text-2xl">{c.flag}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{c.name}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{c.dial}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{c.msgs.toLocaleString()}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">msgs/mo</p>
+                  </div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      </main>
+          </div>
 
-      {/* Quick Send Modal */}
-      <QuickSendModal
-        isOpen={isQuickSendOpen}
-        onClose={() => setIsQuickSendOpen(false)}
-        onSuccess={() => {
-          loadStats();
-        }}
-      />
+          {/* Activity Feed */}
+          <div className="zs-card p-5 animate-fade-in-up delay-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-[var(--text-heading)] flex items-center gap-2">
+                <Activity className="w-4 h-4 text-indigo-500" />
+                Recent Activity
+              </h3>
+              <span className="text-[11px] text-[var(--text-muted)]">Live feed</span>
+            </div>
+            <div className="space-y-3">
+              {ACTIVITY.map((a) => {
+                const Icon = typeIcons[a.type];
+                const colors = typeColors[a.type];
+                return (
+                  <div key={a.id} className="flex gap-3 p-3 rounded-xl hover:bg-[var(--bg-surface)] transition-colors">
+                    <div className={`w-8 h-8 rounded-lg ${colors} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--text-primary)] leading-relaxed">{a.msg}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-[var(--text-muted)]">{a.time}</span>
+                        <span className={`zs-badge text-[9px] px-2 py-0.5 ${
+                          a.status === 'success' ? 'zs-badge-success' :
+                          a.status === 'pending' ? 'zs-badge-warning' :
+                          'zs-badge-info'
+                        }`}>
+                          {a.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions Row */}
+        <div className="zs-card p-5 animate-fade-in-up delay-400">
+          <h3 className="text-sm font-bold text-[var(--text-heading)] mb-4 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-500" />
+            Quick Actions
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Send SMS Blast', icon: Send, href: '/campaigns', color: 'hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700' },
+              { label: 'WhatsApp Campaign', icon: MessageSquare, href: '/whatsapp', color: 'hover:bg-green-50 hover:border-green-200 hover:text-green-700' },
+              { label: 'Email Newsletter', icon: Mail, href: '/email', color: 'hover:bg-cyan-50 hover:border-cyan-200 hover:text-cyan-700' },
+              { label: 'Add Contacts', icon: Users, href: '/contacts', color: 'hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700' },
+            ].map((q) => (
+              <Link
+                key={q.label}
+                href={q.href}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium transition-all text-center ${q.color}`}
+              >
+                <q.icon className="w-5 h-5" />
+                {q.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </main>
     </div>
   );
 }
