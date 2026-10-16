@@ -64,7 +64,7 @@ export default function DashboardPage() {
       />
 
       {/* Main Content Area */}
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="lg:ml-64 pt-20 sm:pt-24 px-4 sm:px-6 lg:px-8 pb-8 space-y-6">
         {/* Connection Notice if PostgreSQL credentials not yet configured */}
         {!isConnected && (
           <div className="p-4 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/30 flex flex-col sm:flex-row sm:items-start justify-between gap-4">

@@ -132,7 +132,7 @@ export default function InboxPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-64 pt-16 p-2 sm:p-4 lg:p-8 h-[100dvh] flex flex-col">
+      <main className="lg:ml-64 pt-20 pb-4 px-2 sm:px-4 lg:px-6 h-[100dvh] flex flex-col">
         <div className="flex-1 flex rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 overflow-hidden shadow-2xl min-h-0">
           {/* Left Column: Thread List — full width on mobile, hidden on mobile when viewing a chat */}
           <div

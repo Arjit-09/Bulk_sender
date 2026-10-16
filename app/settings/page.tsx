@@ -154,7 +154,7 @@ export default function SettingsPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6 lg:max-w-4xl">
+      <main className="lg:ml-64 pt-20 sm:pt-24 px-4 sm:px-6 lg:px-8 pb-8 space-y-6 lg:max-w-4xl">
         {/* Database Diagnostics Card */}
         <div className="p-4 sm:p-6 rounded-2xl bg-[#0f1129] border border-[#6366f1]/20 space-y-4">
           <div className="flex items-center justify-between">

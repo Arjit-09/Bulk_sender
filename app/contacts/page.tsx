@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
 import { getContacts, createContact, deleteContact, bulkImportContacts, getContactGroups } from '@/lib/db-actions';
-import { Users, Plus, Upload, Search, Trash2, Phone, Mail, Tag, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, Plus, Upload, Download, Search, Trash2, Phone, Mail, Tag, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
@@ -61,24 +61,74 @@ export default function ContactsPage() {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (text) {
+        setCsvText(text);
+        setFormMsg('');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const downloadTemplate = () => {
+    const templateContent = 'Name,Phone,Email,Group\nAlice Johnson,+12025550143,alice@example.com,VIP Customers\nBob Martinez,+12025550187,bob@example.com,Promotions\nCarol Williams,+12025550192,carol@example.com,General\nDavid Lee,+12025550124,david@example.com,VIP Customers';
+    const blob = new Blob([templateContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'contacts_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleBulkImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!csvText.trim()) return;
 
-    // Parse simple CSV: Name, Phone, Email, Group
-    const lines = csvText.split('\n');
+    // Parse CSV: Name, Phone, Email, Group
+    const lines = csvText.split('\n').map((l) => l.trim()).filter(Boolean);
     const parsed: Array<{ name: string; phone: string; email?: string; group?: string }> = [];
 
     for (const line of lines) {
       const parts = line.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
+      if (parts.length === 0) continue;
+
+      // Skip header row if present
+      const firstCol = parts[0]?.toLowerCase() || '';
+      const secondCol = parts[1]?.toLowerCase() || '';
+      if (
+        firstCol === 'name' || 
+        firstCol === 'full name' || 
+        firstCol === 'phone' || 
+        firstCol === 'mobile' || 
+        firstCol === 'contact' ||
+        secondCol === 'phone' ||
+        secondCol === 'mobile'
+      ) {
+        continue;
+      }
+
       if (parts.length >= 2 && parts[1]) {
-        // Skip header row if present
-        if (parts[0].toLowerCase() === 'name' || parts[1].toLowerCase() === 'phone') continue;
         parsed.push({
-          name: parts[0],
+          name: parts[0] || `Contact (${parts[1]})`,
           phone: parts[1],
           email: parts[2] || undefined,
           group: parts[3] || 'VIP Customers',
+        });
+      } else if (parts.length === 1 && parts[0]) {
+        // Single column with just phone number
+        const rawPhone = parts[0];
+        parsed.push({
+          name: `Contact (${rawPhone})`,
+          phone: rawPhone,
+          group: 'VIP Customers',
         });
       }
     }
@@ -92,6 +142,7 @@ export default function ContactsPage() {
       await bulkImportContacts(parsed);
       setCsvText('');
       setIsImportOpen(false);
+      setFormMsg('');
       loadData();
     } catch (err: any) {
       setFormMsg(err.message || 'Import failed');
@@ -118,7 +169,7 @@ export default function ContactsPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-64 pt-16 p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="lg:ml-64 pt-20 sm:pt-24 px-4 sm:px-6 lg:px-8 pb-8 space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 sm:max-w-md">
@@ -342,15 +393,56 @@ export default function ContactsPage() {
       {isImportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-[#0f1129] border border-[#6366f1]/30 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-white">Import Contacts from CSV</h3>
-            <p className="text-xs text-[#94a3b8]">
-              Paste CSV text formatted as: <code>Name, Phone, Email, Group</code>
-            </p>
-            {formMsg && <p className="text-xs text-[#ef4444]">{formMsg}</p>}
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-[#818cf8]" />
+                  Import Contacts from CSV
+                </h3>
+                <p className="text-xs text-[#94a3b8] mt-0.5">
+                  Format: <code className="text-[#818cf8] bg-[#12142e] px-1.5 py-0.5 rounded">Name, Phone, Email, Group</code>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={downloadTemplate}
+                className="px-2.5 py-1.5 rounded-lg bg-[#12142e] border border-[#6366f1]/25 text-[#818cf8] hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Download ready-to-use CSV template"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Template</span>
+              </button>
+            </div>
+
+            {formMsg && (
+              <div className="p-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-xs text-[#ef4444] flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{formMsg}</span>
+              </div>
+            )}
+
+            {/* File Upload Option */}
+            <div className="p-3 rounded-xl bg-[#12142e] border border-dashed border-[#6366f1]/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-[#94a3b8] text-center sm:text-left">
+                <span className="text-white font-medium block">Upload .CSV file directly</span>
+                <span>or paste text rows in the box below</span>
+              </div>
+              <label className="px-3 py-1.5 rounded-xl bg-[#6366f1]/20 hover:bg-[#6366f1]/30 border border-[#6366f1]/40 text-[#818cf8] hover:text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Choose .CSV</span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
             <form onSubmit={handleBulkImport} className="space-y-3">
               <textarea
                 rows={6}
-                placeholder={`Alice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Newsletter\nCarol Williams, +12025550192, carol@example.com, Prospects`}
+                placeholder={`Name, Phone, Email, Group\nAlice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Promotions\nCarol Williams, +12025550192, carol@example.com, General`}
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
                 className="w-full bg-[#0d0f26] border border-[#6366f1]/25 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-[#6366f1] resize-none"
@@ -361,24 +453,27 @@ export default function ContactsPage() {
                   type="button"
                   onClick={() => {
                     setCsvText(
-                      `Alice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Newsletter\nCarol Williams, +12025550192, carol@example.com, Prospects\nDavid Lee, +12025550124, david@example.com, VIP Customers\nEva Brown, +12025550165, eva@example.com, Newsletter`
+                      `Name, Phone, Email, Group\nAlice Johnson, +12025550143, alice@example.com, VIP Customers\nBob Martinez, +12025550187, bob@example.com, Promotions\nCarol Williams, +12025550192, carol@example.com, General\nDavid Lee, +12025550124, david@example.com, VIP Customers\nEva Brown, +12025550165, eva@example.com, Promotions`
                     );
                   }}
                   className="text-xs text-[#818cf8] hover:underline cursor-pointer"
                 >
-                  Load Sample CSV Rows
+                  Load Sample Rows
                 </button>
                 <div className="flex gap-2 w-full sm:w-auto justify-end">
                   <button
                     type="button"
-                    onClick={() => setIsImportOpen(false)}
+                    onClick={() => {
+                      setIsImportOpen(false);
+                      setFormMsg('');
+                    }}
                     className="px-3.5 py-1.5 rounded-xl text-xs text-[#94a3b8] hover:bg-[#181a35] cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-[#6366f1] text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-1.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-semibold cursor-pointer shadow-lg shadow-indigo-600/25 transition-all"
                   >
                     Import to PostgreSQL
                   </button>
