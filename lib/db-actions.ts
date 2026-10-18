@@ -571,5 +571,5 @@ export async function syncTwilioInbound() {
 }
 
 export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string; provider?: string }) {
-  return await dispatchSms(toPhone, 'Test message from Bulk SMS Platform: Telnyx integration connected successfully! 🚀', override);
+  return await dispatchSms(toPhone, 'Test message from Zenith Tech SMS Platform: SMS integration connected successfully! 🚀', override);
 }

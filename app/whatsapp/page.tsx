@@ -11,10 +11,10 @@ import {
 } from 'lucide-react';
 
 const INITIAL_WA_CAMPAIGNS = [
-  { id: 1, name: 'Festival Offer India', country: '🇮🇳 India', template: 'Festival Promo', sent: 8400, delivered: 8240, read: 6780, status: 'completed', date: 'Oct 12' },
-  { id: 2, name: 'UK Flash Sale', country: '🇬🇧 UK', template: 'Flash Sale Alert', sent: 3200, delivered: 3140, read: 2890, status: 'completed', date: 'Oct 10' },
-  { id: 3, name: 'US Restock Alert', country: '🇺🇸 US', template: 'Restock Notice', sent: 5600, delivered: 5490, read: 4620, status: 'running', date: 'Oct 15' },
-  { id: 4, name: 'Germany Launch', country: '🇩🇪 Germany', template: 'Product Launch', sent: 2400, delivered: 2360, read: 1980, status: 'scheduled', date: 'Oct 18' },
+  { id: 1, name: 'Festival Offer India', country: '🇮🇳 Pan India', template: 'Festival Promo', sent: 8400, delivered: 8240, read: 6780, status: 'completed', date: 'Oct 12' },
+  { id: 2, name: 'Delhi NCR VIP Blast', country: '🇮🇳 Delhi NCR', template: 'Flash Sale Alert', sent: 3200, delivered: 3140, read: 2890, status: 'completed', date: 'Oct 10' },
+  { id: 3, name: 'Mumbai Express Updates', country: '🇮🇳 Mumbai', template: 'Restock Notice', sent: 5600, delivered: 5490, read: 4620, status: 'running', date: 'Oct 15' },
+  { id: 4, name: 'Bengaluru Tech Event', country: '🇮🇳 Bengaluru', template: 'Welcome Message', sent: 2400, delivered: 2360, read: 1980, status: 'scheduled', date: 'Oct 18' },
 ];
 
 const INITIAL_WA_TEMPLATES = [
@@ -340,10 +340,10 @@ export default function WhatsAppPage() {
                 <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">Country Engagement Breakdown</h3>
                 <div className="space-y-3 pt-2">
                   {[
-                    { country: '🇮🇳 India', rate: 94, msgs: '8,400 msgs' },
-                    { country: '🇺🇸 United States', rate: 88, msgs: '5,600 msgs' },
-                    { country: '🇬🇧 United Kingdom', rate: 82, msgs: '3,200 msgs' },
-                    { country: '🇩🇪 Germany', rate: 76, msgs: '2,400 msgs' },
+                    { country: '🇮🇳 Delhi NCR', rate: 96, msgs: '8,400 msgs' },
+                    { country: '🇮🇳 Maharashtra (Mumbai/Pune)', rate: 93, msgs: '5,600 msgs' },
+                    { country: '🇮🇳 Karnataka (Bengaluru)', rate: 91, msgs: '3,200 msgs' },
+                    { country: '🇮🇳 Telangana (Hyderabad)', rate: 88, msgs: '2,400 msgs' },
                   ].map((row) => (
                     <div key={row.country} className="space-y-1">
                       <div className="flex justify-between text-xs">

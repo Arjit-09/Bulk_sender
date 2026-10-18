@@ -21,11 +21,11 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Provider & Form states
-  const [provider, setProvider] = useState<'telnyx' | 'twilio'>('telnyx');
+  const [provider, setProvider] = useState<'fast2sms' | 'telnyx' | 'twilio'>('fast2sms');
   const [accountSid, setAccountSid] = useState('');
-  const [authToken, setAuthToken] = useState('');
-  const [fromPhone, setFromPhone] = useState('+14795909259');
-  const [balance, setBalance] = useState(25.0);
+  const [authToken, setAuthToken] = useState('Wq7mxE18PfMXJp4G6z2SjQNHZIT3VFcolLRKUnykYri0aCsdObE2kjei6qu1nYITBZlG7f5WcwQSo3bP');
+  const [fromPhone, setFromPhone] = useState('+918920856958');
+  const [balance, setBalance] = useState(50.0);
 
   // Test SMS state
   const [testPhone, setTestPhone] = useState('+918920856958');
@@ -42,12 +42,14 @@ export default function SettingsPage() {
       setSettings(s);
       setDbStatus(db);
       if (s) {
-        if (s.provider === 'telnyx' || s.authToken?.startsWith('KEY')) {
+        if (s.provider === 'fast2sms') {
+          setProvider('fast2sms');
+        } else if (s.provider === 'telnyx' || s.authToken?.startsWith('KEY')) {
           setProvider('telnyx');
         } else if (s.accountSid?.startsWith('AC')) {
           setProvider('twilio');
         } else {
-          setProvider('telnyx');
+          setProvider('fast2sms');
         }
 
         setAccountSid(s.accountSid || '');
@@ -228,11 +230,18 @@ export default function SettingsPage() {
               <div className="zs-tab-list self-start sm:self-auto">
                 <button
                   type="button"
+                  onClick={() => setProvider('fast2sms')}
+                  className={`zs-tab text-xs font-semibold ${provider === 'fast2sms' ? 'active' : ''}`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Fast2SMS (India 🇮🇳)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setProvider('telnyx')}
                   className={`zs-tab text-xs font-semibold ${provider === 'telnyx' ? 'active' : ''}`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Telnyx (Recommended)</span>
+                  Telnyx
                 </button>
                 <button
                   type="button"
@@ -252,7 +261,43 @@ export default function SettingsPage() {
             )}
 
             <form onSubmit={handleSave} className="space-y-4">
-              {provider === 'telnyx' ? (
+              {provider === 'fast2sms' ? (
+                <>
+                  <div className="p-3.5 rounded-xl bg-orange-50/80 border border-orange-200 text-xs text-orange-900 flex items-start gap-2.5">
+                    <span className="text-lg">🇮🇳</span>
+                    <div>
+                      <span className="font-semibold">Fast2SMS India Route:</span> Sends instant bulk SMS to Indian mobile numbers (+91) via the Quick SMS route without requiring TRAI DLT registration.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                      Fast2SMS Authorization API Key
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter Fast2SMS API Key"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      className="zs-input font-mono text-xs"
+                      required
+                    />
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                      Located in Fast2SMS ➔ Dev API ➔ API Key
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                      Target Country & Sender Route
+                    </label>
+                    <div className="zs-input font-mono text-xs bg-[var(--bg-surface)] text-[var(--text-secondary)] flex items-center justify-between">
+                      <span>🇮🇳 India (+91) — Route Quick (q)</span>
+                      <span className="zs-badge-success text-[10px]">Active</span>
+                    </div>
+                  </div>
+                </>
+              ) : provider === 'telnyx' ? (
                 <>
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5">
                     <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-600" />

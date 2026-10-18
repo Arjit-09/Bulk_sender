@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 
 const INITIAL_EMAIL_CAMPAIGNS = [
-  { id: 1, name: 'October Newsletter', subject: '🍂 Fall Deals Inside!', country: '🇺🇸 US + 🇬🇧 UK', sent: 18200, delivered: 17640, opened: 7890, clicked: 2340, status: 'completed', date: 'Oct 13' },
-  { id: 2, name: 'Product Launch Blast', subject: 'Introducing ZenithPro ✨', country: '🌍 Global', sent: 24000, delivered: 23100, opened: 9420, clicked: 3120, status: 'running', date: 'Oct 15' },
-  { id: 3, name: 'India Festival Sale', subject: '🪔 Diwali Exclusive Offer', country: '🇮🇳 India', sent: 12000, delivered: 11850, opened: 5900, clicked: 1820, status: 'completed', date: 'Oct 20' },
+  { id: 1, name: 'Diwali Festive Newsletter', subject: '🪔 Exclusive Festive Deals Inside!', country: '🇮🇳 Pan India', sent: 18200, delivered: 17640, opened: 7890, clicked: 2340, status: 'completed', date: 'Oct 13' },
+  { id: 2, name: 'Product Launch Blast', subject: 'Introducing ZenithTech Suite ✨', country: '🇮🇳 Delhi NCR + Mumbai', sent: 24000, delivered: 23100, opened: 9420, clicked: 3120, status: 'running', date: 'Oct 15' },
+  { id: 3, name: 'India Tech Conference', subject: 'Tickets now live for Bengaluru Tech Summit', country: '🇮🇳 Bengaluru', sent: 12000, delivered: 11850, opened: 5900, clicked: 1820, status: 'completed', date: 'Oct 20' },
 ];
 
 const EMAIL_TEMPLATES = [

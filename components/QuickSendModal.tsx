@@ -20,18 +20,27 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
   const [statusMsg, setStatusMsg] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  // Auto-format phone: ensure it starts with + and has country code
+  // Auto-format phone: support 10-digit Indian numbers or E.164
   const handlePhoneChange = (val: string) => {
-    // Strip spaces and dashes
     let cleaned = val.replace(/[\s\-]/g, '');
-    // If user typed digits only (no +), auto-prepend +
-    if (cleaned && !cleaned.startsWith('+')) {
-      cleaned = '+' + cleaned;
+    // If user enters 10 digits without prefix, auto add +91
+    if (/^[6-9]\d{9}$/.test(cleaned)) {
+      cleaned = '+91' + cleaned;
+    } else if (cleaned && !cleaned.startsWith('+') && !cleaned.startsWith('91')) {
+      if (cleaned.length <= 10) {
+        // typing 10 digits
+      } else {
+        cleaned = '+' + cleaned;
+      }
     }
     setPhone(cleaned);
-    // Validate E.164: + followed by 7-15 digits
-    if (cleaned && !/^\+[1-9]\d{6,14}$/.test(cleaned)) {
-      setPhoneError('Must be E.164 format: +[country code][number] e.g. +918920856958 or +12025550199');
+    
+    // Check if valid Indian number or E.164
+    const isIndian = /^\+91[6-9]\d{9}$/.test(cleaned) || /^[6-9]\d{9}$/.test(cleaned);
+    const isE164 = /^\+[1-9]\d{6,14}$/.test(cleaned);
+
+    if (cleaned && !isIndian && !isE164) {
+      setPhoneError('Enter valid 10-digit Indian mobile number e.g. 8920856958 or +918920856958');
     } else {
       setPhoneError('');
     }
@@ -56,10 +65,15 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
       setStatusMsg('Please provide a phone number and message content.');
       return;
     }
-    // Block if phone format is invalid
-    if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+
+    let targetPhone = phone.trim();
+    if (/^[6-9]\d{9}$/.test(targetPhone)) {
+      targetPhone = '+91' + targetPhone;
+    }
+
+    if (!/^\+[1-9]\d{6,14}$/.test(targetPhone)) {
       setStatusMsg(
-        `❌ Invalid phone format: "${phone}". Use E.164 with country code, e.g. +918920856958 (India) or +12025550199 (US).`
+        `❌ Invalid phone format: "${phone}". Please enter a valid Indian number (e.g. 8920856958 or +918920856958).`
       );
       return;
     }
@@ -128,7 +142,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="+918920856958 or +12025550199"
+                placeholder="e.g. 8920856958 or +918920856958"
                 value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 className={`zs-input flex-1 ${phoneError ? 'border-rose-400 focus:border-rose-500' : ''}`}

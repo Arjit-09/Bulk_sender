@@ -12,11 +12,10 @@ import {
 } from 'lucide-react';
 
 const INITIAL_ORGS = [
-  { id: 1, name: 'Acme Corp', slug: 'acme-corp', plan: 'Growth', status: 'active', members: 4, sms: 3240, wa: 1840, email: 22400, contacts: 4200, revenue: 99, logo: 'AC', country: '🇮🇳' },
-  { id: 2, name: 'TechStart Ltd', slug: 'techstart', plan: 'Starter', status: 'active', members: 2, sms: 480, wa: 210, email: 1800, contacts: 340, revenue: 29, logo: 'TS', country: '🇺🇸' },
-  { id: 3, name: 'GlobalMark', slug: 'globalmark', plan: 'Enterprise', status: 'active', members: 18, sms: 84000, wa: 42000, email: 380000, contacts: 92000, revenue: 349, logo: 'GM', country: '🇬🇧' },
-  { id: 4, name: 'NovaBiz', slug: 'novabiz', plan: 'Starter', status: 'trial', members: 1, sms: 120, wa: 60, email: 800, contacts: 95, revenue: 0, logo: 'NB', country: '🇩🇪' },
-  { id: 5, name: 'MarketEdge', slug: 'marketedge', plan: 'Growth', status: 'past_due', members: 6, sms: 0, wa: 0, email: 0, contacts: 7800, revenue: 0, logo: 'ME', country: '🇦🇺' },
+  { id: 1, name: 'Zenith Tech Services', slug: 'zenith-tech', plan: 'Enterprise', status: 'active', members: 4, sms: 12400, wa: 8840, email: 42400, contacts: 14200, revenue: 9999, logo: 'ZT', country: '🇮🇳' },
+  { id: 2, name: 'Delhi Retailers Hub', slug: 'delhi-retail', plan: 'Growth', status: 'active', members: 3, sms: 4800, wa: 2100, email: 18000, contacts: 3400, revenue: 4999, logo: 'DR', country: '🇮🇳' },
+  { id: 3, name: 'Bengaluru CloudWorks', slug: 'blr-cloud', plan: 'Enterprise', status: 'active', members: 12, sms: 84000, wa: 42000, email: 380000, contacts: 92000, revenue: 19999, logo: 'BC', country: '🇮🇳' },
+  { id: 4, name: 'Mumbai Logistics Co', slug: 'mumbai-logistics', plan: 'Starter', status: 'trial', members: 2, sms: 1200, wa: 600, email: 8000, contacts: 950, revenue: 0, logo: 'ML', country: '🇮🇳' },
 ];
 
 const PLAN_COLORS: Record<string, string> = {

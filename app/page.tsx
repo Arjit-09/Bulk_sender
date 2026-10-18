@@ -87,22 +87,22 @@ function ChannelCard({
   );
 }
 
-// ─── Country Coverage Card ────────────────────────────────────────────────────
+// ─── India Regional Coverage Card ─────────────────────────────────────────────
 const COUNTRIES = [
-  { code: 'IN', name: 'India', flag: '🇮🇳', dial: '+91', msgs: 12400 },
-  { code: 'US', name: 'United States', flag: '🇺🇸', dial: '+1', msgs: 9800 },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', dial: '+44', msgs: 6200 },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺', dial: '+61', msgs: 3100 },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦', dial: '+1', msgs: 2900 },
-  { code: 'DE', name: 'Germany', flag: '🇩🇪', dial: '+49', msgs: 2400 },
+  { code: 'IN-DL', name: 'Delhi NCR', flag: '🇮🇳', dial: '+91', msgs: 14200 },
+  { code: 'IN-MH', name: 'Mumbai / Maharashtra', flag: '🇮🇳', dial: '+91', msgs: 11800 },
+  { code: 'IN-KA', name: 'Bengaluru / Karnataka', flag: '🇮🇳', dial: '+91', msgs: 9400 },
+  { code: 'IN-TG', name: 'Hyderabad / Telangana', flag: '🇮🇳', dial: '+91', msgs: 7100 },
+  { code: 'IN-TN', name: 'Chennai / Tamil Nadu', flag: '🇮🇳', dial: '+91', msgs: 5800 },
+  { code: 'IN-WB', name: 'Kolkata / West Bengal', flag: '🇮🇳', dial: '+91', msgs: 4200 },
 ];
 
 // ─── Activity Feed ────────────────────────────────────────────────────────────
 const ACTIVITY = [
-  { id: 1, type: 'sms', msg: 'Summer Sale campaign sent to 2,400 contacts in India', time: '2m ago', status: 'success' },
-  { id: 2, type: 'email', msg: 'Newsletter dispatched to US segment — 9,800 recipients', time: '15m ago', status: 'success' },
-  { id: 3, type: 'wa', msg: 'WhatsApp promo to UK contacts — delivery in progress', time: '1h ago', status: 'pending' },
-  { id: 4, type: 'sms', msg: 'Reminder blast scheduled for Canada — 2,900 contacts', time: '3h ago', status: 'scheduled' },
+  { id: 1, type: 'sms', msg: 'Diwali Festive campaign sent to 2,400 contacts in Delhi NCR via Fast2SMS', time: '2m ago', status: 'success' },
+  { id: 2, type: 'email', msg: 'Newsletter dispatched to Mumbai subscribers — 5,800 recipients', time: '15m ago', status: 'success' },
+  { id: 3, type: 'wa', msg: 'WhatsApp promo to Bengaluru contacts — delivery in progress', time: '1h ago', status: 'pending' },
+  { id: 4, type: 'sms', msg: 'Order updates dispatched via Fast2SMS India Route — 1,200 contacts', time: '3h ago', status: 'success' },
 ];
 
 const typeIcons: Record<string, any> = { sms: Send, email: Mail, wa: MessageSquare };
