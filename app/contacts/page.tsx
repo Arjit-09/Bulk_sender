@@ -147,8 +147,8 @@ export default function ContactsPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
       />
       <Topbar

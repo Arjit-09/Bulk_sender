@@ -72,10 +72,10 @@ export default function ReportsPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
-        balance={87.50}
+        balance={stats?.balance ?? 0}
       />
       <Topbar
         title="Reports & Analytics"
@@ -168,7 +168,7 @@ export default function ReportsPage() {
                   <DollarSign className="w-4.5 h-4.5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-[var(--text-heading)]">${(stats?.totalSpent ?? 0).toFixed(4)}</p>
+              <p className="text-3xl font-extrabold text-[var(--text-heading)]">₹{(stats?.totalSpent ?? 0).toFixed(2)}</p>
               <p className="text-xs text-[var(--text-muted)] mt-1">SQL SUM(cost) per carrier unit</p>
             </div>
           </div>
@@ -278,12 +278,12 @@ export default function ReportsPage() {
               </div>
               <div className="space-y-2 pt-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">Volume</span>
-                  <span className="font-semibold text-[var(--text-heading)]">19.6K messages</span>
+                  <span className="text-[var(--text-secondary)]">Status</span>
+                  <span className="font-semibold text-emerald-600">Meta Cloud API Ready</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">Read Confirmation</span>
-                  <span className="font-semibold text-emerald-600">82.4% verified</span>
+                  <span className="text-[var(--text-secondary)]">Rate</span>
+                  <span className="font-semibold text-[var(--text-heading)]">₹0.68 / conversation</span>
                 </div>
               </div>
             </div>
@@ -295,17 +295,17 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-[var(--text-heading)]">Email Suite</h4>
-                  <p className="text-[11px] text-[var(--text-muted)]">SendGrid / AWS SES</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">Enterprise SMTP Gateway</p>
                 </div>
               </div>
               <div className="space-y-2 pt-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">Volume</span>
-                  <span className="font-semibold text-[var(--text-heading)]">54.2K emails</span>
+                  <span className="text-[var(--text-secondary)]">Status</span>
+                  <span className="font-semibold text-cyan-600">Active</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">Open Rate</span>
-                  <span className="font-semibold text-cyan-600">44.8% unique</span>
+                  <span className="text-[var(--text-secondary)]">Rate</span>
+                  <span className="font-semibold text-[var(--text-heading)]">₹0.02 / email</span>
                 </div>
               </div>
             </div>

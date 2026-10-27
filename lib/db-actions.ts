@@ -4,6 +4,8 @@ import prisma from './prisma';
 import { fetchTwilioInboundMessages } from './twilio';
 import { fetchTelnyxInboundMessages } from './telnyx';
 import { dispatchSms } from './sms';
+import { sendWhatsAppMessage } from './whatsapp';
+
 
 export type DbStatus = {
   connected: boolean;
@@ -572,4 +574,24 @@ export async function syncTwilioInbound() {
 
 export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string; provider?: string }) {
   return await dispatchSms(toPhone, 'Test message from Zenith Tech SMS Platform: SMS integration connected successfully! 🚀', override);
+}
+
+// ======================= WHATSAPP (META CLOUD API) =======================
+export async function sendWhatsAppMessageAction(
+  toPhone: string,
+  templateName: string,
+  params: string[] = []
+) {
+  return await sendWhatsAppMessage(toPhone, templateName, params);
+}
+
+export async function getWaSettingsStatus(): Promise<{ configured: boolean }> {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const configured =
+    Boolean(phoneNumberId) &&
+    phoneNumberId !== 'your_phone_number_id_here' &&
+    Boolean(accessToken) &&
+    accessToken !== 'your_meta_access_token_here';
+  return { configured };
 }

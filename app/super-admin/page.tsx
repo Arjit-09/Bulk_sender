@@ -92,7 +92,7 @@ export default function SuperAdminPage() {
         orgName="ZenithServices HQ"
         planName="Enterprise"
         userRole="SUPER_ADMIN"
-        balance={87.50}
+        balance={0}
       />
       <Topbar
         title="Super Admin"

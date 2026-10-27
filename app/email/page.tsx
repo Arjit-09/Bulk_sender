@@ -75,10 +75,10 @@ export default function EmailPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
-        balance={87.50}
+        balance={0}
       />
       <Topbar
         title="Email Suite"

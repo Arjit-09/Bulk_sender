@@ -23,12 +23,12 @@ export default function SettingsPage() {
   // Provider & Form states
   const [provider, setProvider] = useState<'fast2sms' | 'telnyx' | 'twilio'>('fast2sms');
   const [accountSid, setAccountSid] = useState('');
-  const [authToken, setAuthToken] = useState('Wq7mxE18PfMXJp4G6z2SjQNHZIT3VFcolLRKUnykYri0aCsdObE2kjei6qu1nYITBZlG7f5WcwQSo3bP');
-  const [fromPhone, setFromPhone] = useState('+918920856958');
-  const [balance, setBalance] = useState(50.0);
+  const [authToken, setAuthToken] = useState('');
+  const [fromPhone, setFromPhone] = useState('');
+  const [balance, setBalance] = useState(0);
 
   // Test SMS state
-  const [testPhone, setTestPhone] = useState('+918920856958');
+  const [testPhone, setTestPhone] = useState('');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -134,11 +134,11 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Sidebar
-        balance={balance}
+        balance={balance ?? 0}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
+        orgName="ZenithServices"
         planName="Growth"
         userRole="SUPER_ADMIN"
       />

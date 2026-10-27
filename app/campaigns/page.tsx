@@ -110,8 +110,8 @@ export default function CampaignsPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
       />
       <Topbar

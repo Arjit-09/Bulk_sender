@@ -84,7 +84,7 @@ export default function Sidebar({
   onOpenQuickSend,
   isOpen = false,
   onClose,
-  orgName = 'Your Organization',
+  orgName = 'ZenithServices',
   planName = 'Starter',
   userRole = 'ADMIN',
 }: SidebarProps) {
@@ -252,7 +252,7 @@ export default function Sidebar({
                 <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
                 Account Balance
               </span>
-              <span className="font-bold text-sm text-[var(--text-primary)]">${balance.toFixed(2)}</span>
+              <span className="font-bold text-sm text-[var(--text-primary)]">₹{Number(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="zs-progress-track">
               <div

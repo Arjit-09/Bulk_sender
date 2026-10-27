@@ -5,34 +5,34 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
 import {
-  Globe, Search, CheckCircle2, Plus, Send, MessageSquare, Mail,
-  ChevronRight, TrendingUp, CheckCheck, SlidersHorizontal, DollarSign
+  Globe, Search, CheckCircle2, Send, MessageSquare, Mail,
+  TrendingUp, Radio
 } from 'lucide-react';
 
-const COUNTRIES_DATA = [
-  { code: 'IN', name: 'India', flag: '🇮🇳', dial: '+91', region: 'Asia', population: '1.4B', sms: true, wa: true, email: true, msgs: 12400, cost: '$0.006' },
-  { code: 'US', name: 'United States', flag: '🇺🇸', dial: '+1', region: 'Americas', population: '335M', sms: true, wa: true, email: true, msgs: 9800, cost: '$0.0075' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', dial: '+44', region: 'Europe', population: '68M', sms: true, wa: true, email: true, msgs: 6200, cost: '$0.040' },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺', dial: '+61', region: 'Oceania', population: '26M', sms: true, wa: true, email: true, msgs: 3100, cost: '$0.042' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦', dial: '+1', region: 'Americas', population: '38M', sms: true, wa: true, email: true, msgs: 2900, cost: '$0.0075' },
-  { code: 'DE', name: 'Germany', flag: '🇩🇪', dial: '+49', region: 'Europe', population: '84M', sms: true, wa: true, email: true, msgs: 2400, cost: '$0.058' },
-  { code: 'FR', name: 'France', flag: '🇫🇷', dial: '+33', region: 'Europe', population: '68M', sms: true, wa: true, email: true, msgs: 1900, cost: '$0.062' },
-  { code: 'BR', name: 'Brazil', flag: '🇧🇷', dial: '+55', region: 'Americas', population: '215M', sms: true, wa: true, email: true, msgs: 4100, cost: '$0.008' },
-  { code: 'SG', name: 'Singapore', flag: '🇸🇬', dial: '+65', region: 'Asia', population: '6M', sms: true, wa: true, email: true, msgs: 1600, cost: '$0.038' },
-  { code: 'AE', name: 'UAE', flag: '🇦🇪', dial: '+971', region: 'Middle East', population: '10M', sms: true, wa: true, email: true, msgs: 2100, cost: '$0.030' },
-  { code: 'ZA', name: 'South Africa', flag: '🇿🇦', dial: '+27', region: 'Africa', population: '60M', sms: true, wa: true, email: true, msgs: 1200, cost: '$0.020' },
-  { code: 'JP', name: 'Japan', flag: '🇯🇵', dial: '+81', region: 'Asia', population: '125M', sms: true, wa: false, email: true, msgs: 800, cost: '$0.070' },
+const INDIA_CIRCLES = [
+  { code: 'DL', name: 'Delhi NCR', flag: '🇮🇳', dial: '+91 (11/120)', region: 'North', population: '32M', sms: true, wa: true, email: true, carrier: 'Jio / Airtel / Vi', cost: '₹0.20' },
+  { code: 'MH-MUM', name: 'Mumbai (Metro)', flag: '🇮🇳', dial: '+91 (22)', region: 'West', population: '21M', sms: true, wa: true, email: true, carrier: 'Jio / Airtel / Vi', cost: '₹0.20' },
+  { code: 'KA', name: 'Karnataka (Bengaluru)', flag: '🇮🇳', dial: '+91 (80)', region: 'South', population: '68M', sms: true, wa: true, email: true, carrier: 'Airtel / Jio / Vi', cost: '₹0.20' },
+  { code: 'MH', name: 'Maharashtra & Goa', flag: '🇮🇳', dial: '+91 (20)', region: 'West', population: '112M', sms: true, wa: true, email: true, carrier: 'Jio / Vi / Airtel', cost: '₹0.20' },
+  { code: 'TN', name: 'Tamil Nadu & Chennai', flag: '🇮🇳', dial: '+91 (44)', region: 'South', population: '76M', sms: true, wa: true, email: true, carrier: 'Airtel / Jio / Vi', cost: '₹0.20' },
+  { code: 'TS-AP', name: 'Telangana & AP (Hyderabad)', flag: '🇮🇳', dial: '+91 (40)', region: 'South', population: '88M', sms: true, wa: true, email: true, carrier: 'Airtel / Jio / Vi', cost: '₹0.20' },
+  { code: 'GJ', name: 'Gujarat', flag: '🇮🇳', dial: '+91 (79)', region: 'West', population: '70M', sms: true, wa: true, email: true, carrier: 'Jio / Vi / Airtel', cost: '₹0.20' },
+  { code: 'WB-KOL', name: 'West Bengal & Kolkata', flag: '🇮🇳', dial: '+91 (33)', region: 'East', population: '98M', sms: true, wa: true, email: true, carrier: 'Jio / Airtel / Vi', cost: '₹0.20' },
+  { code: 'UP', name: 'Uttar Pradesh (East & West)', flag: '🇮🇳', dial: '+91 (522)', region: 'North', population: '235M', sms: true, wa: true, email: true, carrier: 'Jio / Airtel / Vi / BSNL', cost: '₹0.20' },
+  { code: 'PB-HR', name: 'Punjab & Haryana', flag: '🇮🇳', dial: '+91 (172)', region: 'North', population: '58M', sms: true, wa: true, email: true, carrier: 'Airtel / Jio / Vi', cost: '₹0.20' },
+  { code: 'RJ', name: 'Rajasthan', flag: '🇮🇳', dial: '+91 (141)', region: 'North', population: '81M', sms: true, wa: true, email: true, carrier: 'Jio / Airtel / Vi', cost: '₹0.20' },
+  { code: 'KL', name: 'Kerala', flag: '🇮🇳', dial: '+91 (484)', region: 'South', population: '35M', sms: true, wa: true, email: true, carrier: 'Airtel / Jio / Vi / BSNL', cost: '₹0.20' },
 ];
 
-const REGIONS = ['All', 'Asia', 'Americas', 'Europe', 'Oceania', 'Middle East', 'Africa'];
+const REGIONS = ['All Circles', 'North', 'South', 'West', 'East'];
 
 export default function CountriesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [region, setRegion] = useState('All');
+  const [region, setRegion] = useState('All Circles');
   const [selected, setSelected] = useState<Set<string>>(
-    new Set(['IN', 'US', 'GB', 'AU', 'CA', 'DE'])
+    new Set(INDIA_CIRCLES.map((c) => c.code))
   );
   const [savedNotice, setSavedNotice] = useState(false);
 
@@ -44,7 +44,7 @@ export default function CountriesPage() {
   };
 
   const selectAll = () => {
-    setSelected(new Set(COUNTRIES_DATA.map(c => c.code)));
+    setSelected(new Set(INDIA_CIRCLES.map((c) => c.code)));
   };
 
   const clearAll = () => {
@@ -56,13 +56,14 @@ export default function CountriesPage() {
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const filtered = COUNTRIES_DATA.filter((c) => {
-    const matchRegion = region === 'All' || c.region === region;
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase());
+  const filtered = INDIA_CIRCLES.filter((c) => {
+    const matchRegion = region === 'All Circles' || c.region === region;
+    const matchSearch =
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.carrier.toLowerCase().includes(search.toLowerCase());
     return matchRegion && matchSearch;
   });
-
-  const totalMonthlyReach = COUNTRIES_DATA.filter(c => selected.has(c.code)).reduce((s, c) => s + c.msgs, 0);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -70,14 +71,14 @@ export default function CountriesPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
-        balance={87.50}
+        balance={0}
       />
       <Topbar
-        title="Country Targeting"
-        subtitle="Configure target geographic regions & multi-channel routing"
+        title="India Telecom Circles & Routing"
+        subtitle="Manage national carrier delivery across all Indian Telecom Service Areas (TSAs)"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
@@ -92,9 +93,9 @@ export default function CountriesPage() {
                 <Globe className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Country Targeting & Routing</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">India Coverage & Carrier Circles</h1>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)]">
-                  {selected.size} countries enabled · {totalMonthlyReach.toLocaleString()} total messages/month reach
+                  {selected.size} circles active · National Indian Routing (+91) via Fast2SMS & Meta Cloud
                 </p>
               </div>
             </div>
@@ -125,7 +126,7 @@ export default function CountriesPage() {
           {savedNotice && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 animate-fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Targeting settings saved! Campaigns will route directly through local tier-1 carriers.</span>
+              <span>Routing configuration saved! Messages will dispatch via Fast2SMS Quick Route & Meta Cloud.</span>
             </div>
           )}
 
@@ -133,11 +134,11 @@ export default function CountriesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="zs-card p-5 flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Globe className="w-5 h-5" />
+                <Radio className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-[var(--text-heading)]">{selected.size}</p>
-                <p className="text-xs text-[var(--text-muted)] font-medium">Active Target Countries</p>
+                <p className="text-2xl font-bold text-[var(--text-heading)]">{selected.size} / 12</p>
+                <p className="text-xs text-[var(--text-muted)] font-medium">Active Telecom Circles</p>
               </div>
             </div>
 
@@ -146,18 +147,18 @@ export default function CountriesPage() {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-[var(--text-heading)]">{totalMonthlyReach.toLocaleString()}</p>
-                <p className="text-xs text-[var(--text-muted)] font-medium">Monthly Recipient Reach</p>
+                <p className="text-2xl font-bold text-[var(--text-heading)]">1.4 Billion+</p>
+                <p className="text-xs text-[var(--text-muted)] font-medium">India-wide Mobile Subscribers</p>
               </div>
             </div>
 
             <div className="zs-card p-5 flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <DollarSign className="w-5 h-5" />
+                <span className="text-lg font-bold">₹</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-[var(--text-heading)]">$0.006 - $0.070</p>
-                <p className="text-xs text-[var(--text-muted)] font-medium">Tier-1 Direct Carrier Rates</p>
+                <p className="text-2xl font-bold text-[var(--text-heading)]">₹0.20 / SMS</p>
+                <p className="text-xs text-[var(--text-muted)] font-medium">Fast2SMS Quick Route (DLT-Free)</p>
               </div>
             </div>
           </div>
@@ -165,10 +166,10 @@ export default function CountriesPage() {
           {/* Filters Bar */}
           <div className="zs-card p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
               <input
-                className="zs-input pl-9.5 text-xs sm:text-sm py-2"
-                placeholder="Search countries by name or dial code…"
+                className="zs-input !pl-10 text-xs sm:text-sm py-2"
+                placeholder="Search circles by state or carrier…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -186,9 +187,9 @@ export default function CountriesPage() {
             </div>
           </div>
 
-          {/* Countries Grid */}
+          {/* Circles Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map((c, i) => {
+            {filtered.map((c) => {
               const isSelected = selected.has(c.code);
               return (
                 <div
@@ -215,6 +216,9 @@ export default function CountriesPage() {
                         </div>
                       </div>
 
+                      {/* Carriers */}
+                      <p className="text-[10px] text-slate-500 font-medium mt-1">Carriers: {c.carrier}</p>
+
                       {/* Channel availability */}
                       <div className="flex items-center gap-1.5 mt-2.5">
                         <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${
@@ -236,7 +240,7 @@ export default function CountriesPage() {
 
                       <div className="flex items-center justify-between mt-3 pt-2 border-t border-[var(--border-subtle)]">
                         <span className="text-[11px] text-[var(--text-muted)] font-medium">Pop: {c.population}</span>
-                        <span className="text-[11px] font-bold text-indigo-600">{c.cost}/msg</span>
+                        <span className="text-[11px] font-bold text-indigo-600">{c.cost} / SMS</span>
                       </div>
                     </div>
                   </div>
