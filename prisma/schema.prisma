@@ -110,3 +110,235 @@ model Setting {
   balance    Float    @default(25.0)
   updatedAt  DateTime @updatedAt
 }
+
+// Tenant-isolated SaaS tables. Legacy tables above are retained for migration only.
+model Account {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  superAdmin Boolean @default(false)
+  memberships Membership[]
+  sessions Session[]
+  createdAt DateTime @default(now())
+}
+model Workspace {
+  id String @id @default(cuid())
+  name String
+  suspended Boolean @default(false)
+  plan String @default("starter")
+  subscriptionStatus String @default("trial")
+  subscriptionId String? @unique
+  planVersionId String?
+  planVersion PricingVersion? @relation(fields: [planVersionId], references: [id])
+  billingThrough DateTime?
+  supportConnections SupportConnection[]
+  conversations Conversation[]
+  members Membership[]
+  contacts AudienceContact[]
+  templates Blueprint[]
+  campaigns Broadcast[]
+  connections ChannelConnection[]
+  deliveries Delivery[]
+  events AuditEvent[]
+  usage UsagePeriod[]
+  createdAt DateTime @default(now())
+}
+model Membership {
+  id String @id @default(cuid())
+  accountId String
+  workspaceId String
+  role String @default("member")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@unique([accountId, workspaceId])
+}
+model Session {
+  tokenHash String @id
+  accountId String
+  workspaceId String
+  expiresAt DateTime
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+}
+model AudienceContact {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  destination String
+  channel String
+  consentSource String
+  consentAt DateTime
+  unsubscribedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, channel, destination])
+}
+model Blueprint {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  channel String
+  subject String?
+  content String
+  providerTemplateId String?
+  dltTemplateId String?
+  language String @default("en_US")
+  approval String @default("draft")
+  createdAt DateTime @default(now())
+  @@index([workspaceId])
+}
+model Broadcast {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  channel String
+  templateId String
+  status String @default("draft")
+  scheduledAt DateTime?
+  deliveries Delivery[]
+  createdAt DateTime @default(now())
+  @@index([workspaceId, createdAt])
+}
+model ChannelConnection {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channel String
+  sender String
+  encryptedSecret String
+  entityId String?
+  status String @default("pending")
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, channel])
+  @@unique([channel, sender])
+}
+model Delivery {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign Broadcast @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId String
+  destination String
+  channel String
+  content String
+  subject String?
+  templateRef String?
+  language String
+  status String @default("queued")
+  providerId String? @unique
+  error String?
+  availableAt DateTime @default(now())
+  claimedAt DateTime?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  @@unique([campaignId, contactId])
+  @@index([status, availableAt])
+  @@index([workspaceId, createdAt])
+}
+model UsagePeriod {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  month String
+  reserved Int @default(0)
+  @@unique([workspaceId, month])
+}
+model AuditEvent {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorId String
+  action String
+  detail String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, createdAt])
+}
+model WebhookReceipt {
+  id String @id
+  createdAt DateTime @default(now())
+}
+model RateBucket {
+  key String @id
+  count Int @default(1)
+  expiresAt DateTime
+}
+
+model SupportConnection {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider String
+  address String
+  senderName String
+  encryptedKey String
+  encryptedWebhookSecret String
+  status String @default("pending")
+  conversations Conversation[]
+  createdAt DateTime @default(now())
+  @@unique([provider, address])
+  @@index([workspaceId])
+}
+model Conversation {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectionId String
+  connection SupportConnection @relation(fields: [connectionId], references: [id])
+  peer String
+  name String
+  subject String @default("")
+  threadKey String @default("")
+  status String @default("open")
+  assigneeId String?
+  blocked Boolean @default(false)
+  lastInboundAt DateTime
+  lastMessageAt DateTime @default(now())
+  messages SupportMessage[]
+  reads ConversationRead[]
+  createdAt DateTime @default(now())
+  @@unique([connectionId, peer, threadKey])
+  @@index([workspaceId, status, lastMessageAt])
+}
+model SupportMessage {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction String
+  body String
+  actorId String?
+  clientKey String? @unique
+  providerKey String? @unique
+  emailMessageId String?
+  templateId String?
+  status String
+  error String?
+  claimedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([status, createdAt])
+  @@index([conversationId, createdAt])
+}
+model ConversationRead {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  accountId String
+  readAt DateTime
+  @@unique([conversationId, accountId])
+}
+model PricingVersion {
+  id String @id @default(cuid())
+  planKey String
+  name String
+  pricePaise Int
+  dispatchLimit Int
+  seats Int
+  razorpayPlanId String @unique
+  published Boolean @default(false)
+  workspaces Workspace[]
+  createdAt DateTime @default(now())
+  @@index([planKey, published, createdAt])
+}

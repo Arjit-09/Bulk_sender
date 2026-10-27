@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from './prisma';
+async function rejectLegacyAccess(): Promise<void> { throw new Error('Legacy actions are disabled. Use the tenant-scoped platform API.'); }
 import { fetchTwilioInboundMessages } from './twilio';
 import { fetchTelnyxInboundMessages } from './telnyx';
 import { dispatchSms } from './sms';
@@ -12,6 +13,7 @@ export type DbStatus = {
 };
 
 export async function checkDatabaseConnection(): Promise<DbStatus> {
+  await rejectLegacyAccess();
   try {
     await prisma.$queryRaw`SELECT 1`;
     return { connected: true, database: 'PostgreSQL' };
@@ -25,6 +27,7 @@ export async function checkDatabaseConnection(): Promise<DbStatus> {
 
 // ======================= DASHBOARD & ANALYTICS =======================
 export async function getDashboardStats() {
+  await rejectLegacyAccess();
   try {
     const isConn = await checkDatabaseConnection();
     if (!isConn.connected) {
@@ -152,6 +155,7 @@ export async function getDashboardStats() {
 
 // ======================= CONTACTS =======================
 export async function getContacts(searchQuery?: string, groupFilter?: string) {
+  await rejectLegacyAccess();
   try {
     const where: any = {};
     if (searchQuery && searchQuery.trim()) {
@@ -181,6 +185,7 @@ export async function createContact(data: {
   email?: string;
   groupName?: string;
 }) {
+  await rejectLegacyAccess();
   let groupId: string | undefined = undefined;
   if (data.groupName && data.groupName.trim()) {
     const group = await prisma.contactGroup.upsert({
@@ -203,10 +208,12 @@ export async function createContact(data: {
 }
 
 export async function deleteContact(id: string) {
+  await rejectLegacyAccess();
   return await prisma.contact.delete({ where: { id } });
 }
 
 export async function bulkImportContacts(contacts: Array<{ name: string; phone: string; email?: string; group?: string }>) {
+  await rejectLegacyAccess();
   let importedCount = 0;
   for (const c of contacts) {
     if (!c.phone) continue;
@@ -235,6 +242,7 @@ export async function bulkImportContacts(contacts: Array<{ name: string; phone: 
 }
 
 export async function getContactGroups() {
+  await rejectLegacyAccess();
   try {
     return await prisma.contactGroup.findMany({
       include: { _count: { select: { contacts: true } } },
@@ -247,6 +255,7 @@ export async function getContactGroups() {
 
 // ======================= TEMPLATES =======================
 export async function getTemplates() {
+  await rejectLegacyAccess();
   try {
     return await prisma.template.findMany({
       orderBy: { createdAt: 'desc' },
@@ -257,6 +266,7 @@ export async function getTemplates() {
 }
 
 export async function createTemplate(data: { name: string; content: string; category?: string }) {
+  await rejectLegacyAccess();
   return await prisma.template.create({
     data: {
       name: data.name.trim(),
@@ -267,11 +277,13 @@ export async function createTemplate(data: { name: string; content: string; cate
 }
 
 export async function deleteTemplate(id: string) {
+  await rejectLegacyAccess();
   return await prisma.template.delete({ where: { id } });
 }
 
 // ======================= CAMPAIGNS =======================
 export async function getCampaigns() {
+  await rejectLegacyAccess();
   try {
     return await prisma.campaign.findMany({
       orderBy: { createdAt: 'desc' },
@@ -288,6 +300,7 @@ export async function createAndRunCampaign(data: {
   customMessage?: string;
   groupName?: string;
 }) {
+  await rejectLegacyAccess();
   // Fetch target contacts
   const where: any = {};
   if (data.groupName && data.groupName !== 'All Contacts') {
@@ -369,12 +382,14 @@ export async function createAndRunCampaign(data: {
 }
 
 export async function deleteCampaign(id: string) {
+  await rejectLegacyAccess();
   await prisma.message.deleteMany({ where: { campaignId: id } });
   return await prisma.campaign.delete({ where: { id } });
 }
 
 // ======================= TWO-WAY INBOX =======================
 export async function getInboxThreads() {
+  await rejectLegacyAccess();
   try {
     const messages = await prisma.message.findMany({
       orderBy: { sentAt: 'desc' },
@@ -415,6 +430,7 @@ export async function getInboxThreads() {
 }
 
 export async function getMessagesForPhone(phone: string) {
+  await rejectLegacyAccess();
   try {
     return await prisma.message.findMany({
       where: {
@@ -428,6 +444,7 @@ export async function getMessagesForPhone(phone: string) {
 }
 
 export async function sendDirectMessage(toPhone: string, content: string) {
+  await rejectLegacyAccess();
   try {
     const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
 
@@ -472,6 +489,7 @@ export async function sendDirectMessage(toPhone: string, content: string) {
 }
 
 export async function simulateInboundReply(fromPhone: string, text: string) {
+  await rejectLegacyAccess();
   const contact = await prisma.contact.findFirst({ where: { phone: fromPhone } });
 
   return await prisma.message.create({
@@ -489,6 +507,7 @@ export async function simulateInboundReply(fromPhone: string, text: string) {
 
 // ======================= SETTINGS & RESET =======================
 export async function getSettings() {
+  await rejectLegacyAccess();
   try {
     let setting = await prisma.setting.findFirst();
     if (!setting) {
@@ -522,6 +541,7 @@ export async function updateSettings(data: {
   fromPhone?: string;
   balance?: number;
 }) {
+  await rejectLegacyAccess();
   const setting = await prisma.setting.findFirst();
   if (!setting) {
     return await prisma.setting.create({
@@ -547,6 +567,7 @@ export async function updateSettings(data: {
 }
 
 export async function clearAllData() {
+  await rejectLegacyAccess();
   // Allows the user to reset all tables to 0 records for fresh testing
   await prisma.message.deleteMany();
   await prisma.campaign.deleteMany();
@@ -558,6 +579,7 @@ export async function clearAllData() {
 
 // Sync inbound messages — auto-detects provider (Telnyx or Twilio)
 export async function syncTwilioInbound() {
+  await rejectLegacyAccess();
   const setting = await prisma.setting.findFirst();
   const isTelnyx =
     setting?.provider === 'telnyx' ||
@@ -571,5 +593,6 @@ export async function syncTwilioInbound() {
 }
 
 export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string; provider?: string }) {
+  await rejectLegacyAccess();
   return await dispatchSms(toPhone, 'Test message from Bulk SMS Platform: Telnyx integration connected successfully! 🚀', override);
 }
