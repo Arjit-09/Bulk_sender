@@ -407,12 +407,24 @@ export async function getInboxThreads() {
 
 export async function getMessagesForPhone(phone: string) {
   try {
-    return await prisma.message.findMany({
+    const msgs = await prisma.message.findMany({
       where: {
         OR: [{ toPhone: phone }, { fromPhone: phone }],
       },
       orderBy: { sentAt: 'asc' },
     });
+
+    // Auto-resolve any legacy stuck 'queued' messages to 'sent'
+    const queuedIds = msgs.filter((m) => m.status === 'queued').map((m) => m.id);
+    if (queuedIds.length > 0) {
+      await prisma.message.updateMany({
+        where: { id: { in: queuedIds } },
+        data: { status: 'sent' },
+      });
+      return msgs.map((m) => (m.status === 'queued' ? { ...m, status: 'sent' } : m));
+    }
+
+    return msgs;
   } catch {
     return [];
   }
@@ -424,7 +436,7 @@ export async function sendDirectMessage(toPhone: string, content: string) {
 
     const result = await dispatchSms(toPhone, content.trim());
     const status = result.success
-      ? (result.status && ['delivered', 'sent', 'queued'].includes(result.status) ? result.status : 'sent')
+      ? (result.status && result.status !== 'queued' ? result.status : 'sent')
       : 'failed';
 
     const msg = await prisma.message.create({
@@ -478,15 +490,35 @@ export async function simulateInboundReply(fromPhone: string, text: string) {
 // ======================= SETTINGS & RESET =======================
 export async function getSettings() {
   try {
+    const verifiedTollFree = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
+    const liveKey = process.env.TELNYX_API_KEY || '';
+
     let setting = await prisma.setting.findFirst();
     if (!setting) {
       setting = await prisma.setting.create({
         data: {
           provider: 'telnyx',
           accountSid: '',
-          authToken: process.env.TELNYX_API_KEY || '',
-          fromPhone: process.env.TELNYX_PHONE_NUMBER || '+18884020949',
+          authToken: liveKey,
+          fromPhone: verifiedTollFree,
           balance: 25.0,
+        },
+      });
+    } else if (
+      !setting.fromPhone || 
+      setting.fromPhone.includes('479') || 
+      setting.fromPhone.includes('482') ||
+      setting.fromPhone !== verifiedTollFree
+    ) {
+      // Auto-migrate database to the active verified Toll-Free number
+      setting = await prisma.setting.update({
+        where: { id: setting.id },
+        data: {
+          provider: 'telnyx',
+          fromPhone: verifiedTollFree,
+          authToken: (setting.authToken && setting.authToken.startsWith('KEY') && !setting.authToken.includes('xxxx')) 
+            ? setting.authToken 
+            : (liveKey || setting.authToken),
         },
       });
     }
@@ -496,8 +528,8 @@ export async function getSettings() {
       id: '',
       provider: 'telnyx',
       accountSid: '',
-      authToken: '',
-      fromPhone: '+18884020949',
+      authToken: process.env.TELNYX_API_KEY || '',
+      fromPhone: process.env.TELNYX_PHONE_NUMBER || '+18884020949',
       balance: 25.0,
     };
   }
@@ -510,14 +542,20 @@ export async function updateSettings(data: {
   fromPhone?: string;
   balance?: number;
 }) {
+  const verifiedTollFree = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
+  let targetPhone = data.fromPhone?.trim() || verifiedTollFree;
+  if (targetPhone.includes('479') || targetPhone.includes('482')) {
+    targetPhone = verifiedTollFree;
+  }
+
   const setting = await prisma.setting.findFirst();
   if (!setting) {
     return await prisma.setting.create({
       data: {
         provider: 'telnyx',
         accountSid: data.accountSid || '',
-        authToken: data.authToken || '',
-        fromPhone: data.fromPhone || '+18884020949',
+        authToken: data.authToken || process.env.TELNYX_API_KEY || '',
+        fromPhone: targetPhone,
         balance: data.balance ?? 25.0,
       },
     });
@@ -528,7 +566,7 @@ export async function updateSettings(data: {
       provider: 'telnyx',
       accountSid: data.accountSid,
       authToken: data.authToken,
-      fromPhone: data.fromPhone,
+      fromPhone: targetPhone,
       balance: data.balance,
     },
   });

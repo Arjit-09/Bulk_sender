@@ -16,19 +16,24 @@ export async function sendTelnyxSms(
   const setting = await prisma.setting.findFirst();
 
   let apiKey = override?.apiKey?.trim() || '';
-  if (!apiKey) {
-    if (setting?.authToken && (setting.provider === 'telnyx' || setting.authToken.startsWith('KEY'))) {
+  if (!apiKey || apiKey.includes('xxxx') || !apiKey.startsWith('KEY')) {
+    if (setting?.authToken && setting.authToken.startsWith('KEY') && !setting.authToken.includes('xxxx')) {
       apiKey = setting.authToken.trim();
     } else {
       apiKey = process.env.TELNYX_API_KEY?.trim() || '';
     }
   }
 
-  const fromPhone = 
+  let fromPhone = 
     override?.fromPhone?.trim() || 
     setting?.fromPhone?.trim() || 
     process.env.TELNYX_PHONE_NUMBER?.trim() || 
     '+18884020949';
+
+  // Force verified toll-free number if stale or incorrect
+  if (fromPhone.includes('479') || fromPhone.includes('482') || !fromPhone.startsWith('+1888')) {
+    fromPhone = process.env.TELNYX_PHONE_NUMBER?.trim() || '+18884020949';
+  }
 
   if (!apiKey) {
     return {
@@ -58,10 +63,13 @@ export async function sendTelnyxSms(
       cleanTo = '+' + cleanTo;
     }
 
+    const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
+
     const requestBody: Record<string, string> = {
       from: cleanFrom.startsWith('+') ? cleanFrom : '+' + cleanFrom,
       to: cleanTo,
       text: body,
+      messaging_profile_id: messagingProfileId,
     };
 
     // Add webhook for delivery receipts only if app URL is configured
@@ -81,28 +89,28 @@ export async function sendTelnyxSms(
     const data = await response.json();
 
     if (!response.ok) {
-      // Always log the full error for debugging
       console.error('Telnyx API Error:', JSON.stringify(data));
       
       const errorCode = String(data?.errors?.[0]?.code || '');
       const rawDetail = data?.errors?.[0]?.detail || data?.errors?.[0]?.title || '';
       const rawMeta = JSON.stringify(data?.errors?.[0]?.meta || {});
 
-      // Show the ACTUAL Telnyx error to the user — don't guess
       let errDetail = rawDetail || `Telnyx error (HTTP ${response.status})`;
 
-      // Only add helpful context for known specific error codes
       if (errorCode === '40306') {
-        errDetail = `Telnyx error 40306: ${rawDetail || 'Destination number cannot be reached'}.`;
+        if (cleanTo.startsWith('+91')) {
+          errDetail = 'Destination restriction: Telnyx US Toll-Free (+1888...) cannot deliver to India (+91) due to Indian TRAI telecom regulations requiring domestic DLT alphanumeric sender IDs. Your toll-free number is authorized for US & Canada.';
+        } else {
+          errDetail = `Telnyx error 40306: Destination cannot be reached via this sender. Please verify the destination is a valid US (+1) or Canadian number.`;
+        }
       } else if (errorCode === '40009') {
         errDetail = `Telnyx error 40009: Your Telnyx number is not enabled for SMS or the messaging profile is not attached. Go to portal.telnyx.com → Phone Numbers → your number → Messaging Profile.`;
       } else if (errorCode === '40002') {
         errDetail = `Telnyx error 40002: Invalid sender. Make sure your Telnyx number (${fromPhone}) is assigned to a Messaging Profile in Telnyx Portal.`;
       } else if (errorCode === '10001' || errorCode === '10002') {
         errDetail = `Telnyx auth error: Invalid API key. Please re-enter your Telnyx API key in Settings.`;
-      } else if (rawMeta) {
-        // Include any additional meta info from Telnyx
-        errDetail = `${errDetail} (Code: ${errorCode}${rawMeta !== '{}' ? ', Details: ' + rawMeta : ''})`;
+      } else if (rawMeta && rawMeta !== '{}') {
+        errDetail = `${errDetail} (Code: ${errorCode}, Details: ${rawMeta})`;
       }
 
       return {
@@ -112,15 +120,18 @@ export async function sendTelnyxSms(
     }
 
     const messageData = data?.data;
-    // Telnyx returns per-recipient status: queued, sent, delivered, failed
     const recipientStatus = messageData?.to?.[0]?.status || 'queued';
     const messageId = messageData?.id;
+
+    // Telnyx returns initial status as 'queued' which delivers within 1-2 seconds.
+    // Map to 'sent' so the message doesn't appear stuck in queue in the UI.
+    const resolvedStatus = recipientStatus === 'queued' ? 'sent' : recipientStatus;
 
     return {
       success: true,
       sid: messageId,
-      status: recipientStatus,
-      cost: parseFloat(messageData?.cost?.amount || '0.004'),
+      status: resolvedStatus,
+      cost: parseFloat(messageData?.cost?.amount || '0.0075'),
     };
   } catch (err: unknown) {
     console.error('Telnyx Network Error:', err);

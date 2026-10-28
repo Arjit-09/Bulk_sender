@@ -21,10 +21,10 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Provider & Form states
-  const [provider, setProvider] = useState<'fast2sms' | 'telnyx' | 'twilio'>('fast2sms');
+  const [provider, setProvider] = useState<'fast2sms' | 'telnyx' | 'twilio'>('telnyx');
   const [accountSid, setAccountSid] = useState('');
   const [authToken, setAuthToken] = useState('');
-  const [fromPhone, setFromPhone] = useState('');
+  const [fromPhone, setFromPhone] = useState('+18884020949');
   const [balance, setBalance] = useState(0);
 
   // Test SMS state
@@ -42,19 +42,11 @@ export default function SettingsPage() {
       setSettings(s);
       setDbStatus(db);
       if (s) {
-        if (s.provider === 'fast2sms') {
-          setProvider('fast2sms');
-        } else if (s.provider === 'telnyx' || s.authToken?.startsWith('KEY')) {
-          setProvider('telnyx');
-        } else if (s.accountSid?.startsWith('AC')) {
-          setProvider('twilio');
-        } else {
-          setProvider('fast2sms');
-        }
-
+        setProvider('telnyx');
         setAccountSid(s.accountSid || '');
         setAuthToken(s.authToken || '');
-        setFromPhone(s.fromPhone || '+14795909259');
+        const tollFree = '+18884020949';
+        setFromPhone(s.fromPhone && !s.fromPhone.includes('479') && !s.fromPhone.includes('482') ? s.fromPhone : tollFree);
         setBalance(s.balance ?? 25.0);
       }
     } catch (err) {
@@ -221,7 +213,7 @@ export default function SettingsPage() {
                 <div>
                   <h3 className="text-sm font-bold text-[var(--text-heading)]">SMS Gateway Credentials</h3>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Switch between Telnyx and Twilio live APIs with automated phone routing
+                    Live Telnyx API integration with verified Toll-Free number
                   </p>
                 </div>
               </div>
@@ -230,25 +222,10 @@ export default function SettingsPage() {
               <div className="zs-tab-list self-start sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => setProvider('fast2sms')}
-                  className={`zs-tab text-xs font-semibold ${provider === 'fast2sms' ? 'active' : ''}`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Fast2SMS (India 🇮🇳)</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => setProvider('telnyx')}
-                  className={`zs-tab text-xs font-semibold ${provider === 'telnyx' ? 'active' : ''}`}
+                  className="zs-tab text-xs font-semibold active"
                 >
-                  Telnyx
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProvider('twilio')}
-                  className={`zs-tab text-xs font-semibold ${provider === 'twilio' ? 'active' : ''}`}
-                >
-                  Twilio
+                  <span>🇺🇸 🇨🇦 Telnyx Verified Toll-Free</span>
                 </button>
               </div>
             </div>
@@ -302,7 +279,7 @@ export default function SettingsPage() {
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5">
                     <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-600" />
                     <div>
-                      <span className="font-semibold">Using Telnyx API v2:</span> Enter your Telnyx API Key starting with <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">KEY...</code> and your verified sender number <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">+14795909259</code>.
+                      <span className="font-semibold">Using Telnyx API v2:</span> Enter your Telnyx API Key starting with <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">KEY...</code> and your verified toll-free sender number <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono font-bold">+18884020949</code>.
                     </div>
                   </div>
 
@@ -328,11 +305,14 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
-                      placeholder="+14795909259"
+                      placeholder="+18884020949"
                       value={fromPhone}
                       onChange={(e) => setFromPhone(e.target.value)}
                       className="zs-input font-mono text-xs"
                     />
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                      Your verified Toll-Free number: <strong className="text-emerald-700 font-mono">+18884020949</strong>
+                    </p>
                   </div>
                 </>
               ) : (
