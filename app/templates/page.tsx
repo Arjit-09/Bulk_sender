@@ -86,10 +86,10 @@ export default function TemplatesPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
-        balance={87.50}
+        balance={0}
       />
       <Topbar
         title="Message Templates"

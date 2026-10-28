@@ -110,8 +110,8 @@ export default function CampaignsPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
       />
       <Topbar
@@ -141,8 +141,8 @@ export default function CampaignsPage() {
               onClick={() => setIsCreateOpen(true)}
               className="zs-btn-primary self-start sm:self-auto"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Campaign</span>
+              <Play className="w-4 h-4" />
+              <span>Launch Campaign</span>
             </button>
           </div>
 
@@ -244,8 +244,8 @@ export default function CampaignsPage() {
                 onClick={() => setIsCreateOpen(true)}
                 className="zs-btn-primary"
               >
-                <Plus className="w-4 h-4" />
-                <span>Launch First Campaign</span>
+                <Play className="w-4 h-4" />
+                <span>Launch Campaign</span>
               </button>
             </div>
           ) : (

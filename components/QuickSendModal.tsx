@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Send, User, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Send, Sparkles, AlertCircle, PhoneCall } from 'lucide-react';
 import { sendDirectMessage, getContacts, getTemplates } from '@/lib/db-actions';
 
 interface QuickSendModalProps {
@@ -20,18 +20,16 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
   const [statusMsg, setStatusMsg] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  // Auto-format phone: ensure it starts with + and has country code
+  // Validate phone — accept any E.164, warn if not US/CA
   const handlePhoneChange = (val: string) => {
-    // Strip spaces and dashes
-    let cleaned = val.replace(/[\s\-]/g, '');
-    // If user typed digits only (no +), auto-prepend +
-    if (cleaned && !cleaned.startsWith('+')) {
-      cleaned = '+' + cleaned;
-    }
+    const cleaned = val.replace(/[\s()\-.]/g, '');
     setPhone(cleaned);
-    // Validate E.164: + followed by 7-15 digits
-    if (cleaned && !/^\+[1-9]\d{6,14}$/.test(cleaned)) {
-      setPhoneError('Must be E.164 format: +[country code][number] e.g. +918920856958 or +12025550199');
+
+    const isE164 = /^\+[1-9]\d{6,14}$/.test(cleaned);
+    const isTenDigit = /^[2-9]\d{9}$/.test(cleaned);
+
+    if (cleaned && cleaned.length > 5 && !isE164 && !isTenDigit) {
+      setPhoneError('Enter a valid phone number in E.164 format (e.g. +14155552671 or +918920856958)');
     } else {
       setPhoneError('');
     }
@@ -56,10 +54,20 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
       setStatusMsg('Please provide a phone number and message content.');
       return;
     }
-    // Block if phone format is invalid
-    if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+
+    let targetPhone = phone.trim().replace(/[\s()\-.]/g, '');
+    // Auto-prefix 10-digit US/CA numbers
+    if (/^[2-9]\d{9}$/.test(targetPhone)) {
+      targetPhone = '+1' + targetPhone;
+    } else if (/^1[2-9]\d{9}$/.test(targetPhone)) {
+      targetPhone = '+' + targetPhone;
+    } else if (!targetPhone.startsWith('+')) {
+      targetPhone = '+' + targetPhone;
+    }
+
+    if (!/^\+[1-9]\d{6,14}$/.test(targetPhone)) {
       setStatusMsg(
-        `❌ Invalid phone format: "${phone}". Use E.164 with country code, e.g. +918920856958 (India) or +12025550199 (US).`
+        `❌ Invalid number: "${phone}". Please enter a valid phone number in E.164 format.`
       );
       return;
     }
@@ -68,7 +76,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
     setStatusMsg('');
 
     try {
-      const res = await sendDirectMessage(phone, message);
+      const res = await sendDirectMessage(targetPhone, message);
       if (res && (res as any).error) {
         setStatusMsg(`Notice: ${(res as any).error}`);
         (onSuccess || onSent)?.();
@@ -108,7 +116,18 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
           </div>
           <div>
             <h2 className="text-lg font-bold text-[var(--text-heading)]">Quick Send SMS</h2>
-            <p className="text-xs text-[var(--text-muted)]">Direct dispatch recorded live in PostgreSQL</p>
+            <p className="text-xs text-[var(--text-muted)]">Via Telnyx Toll-Free · US & Canada Only</p>
+          </div>
+        </div>
+
+        {/* Provider Badge */}
+        <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+            <PhoneCall className="w-3.5 h-3.5 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-emerald-800">🇺🇸 🇨🇦 Telnyx Verified Toll-Free</p>
+            <p className="text-[11px] text-emerald-700 font-mono">Sender: +1 (888) 402-0949 · Attempts delivery to any country</p>
           </div>
         </div>
 
@@ -122,13 +141,15 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
         <form onSubmit={handleSend} className="space-y-4">
           {/* Recipient Input & Contact Picker */}
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-              Recipient Phone Number (E.164)
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-xs font-semibold text-[var(--text-secondary)]">
+                Recipient Phone Number
+              </label>
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="+918920856958 or +12025550199"
+                placeholder="+14155552671 or 10-digit US/CA number"
                 value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 className={`zs-input flex-1 ${phoneError ? 'border-rose-400 focus:border-rose-500' : ''}`}
@@ -154,7 +175,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
               </p>
             ) : (
               <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
-                💡 Include country code: <span className="text-indigo-600 font-mono font-semibold">+91</span> for India, <span className="text-indigo-600 font-mono font-semibold">+1</span> for US
+                💡 Sent via <span className="text-emerald-600 font-mono font-semibold">+18884020949</span> (Telnyx Toll-Free) · For non-US/CA numbers, Telnyx will try but carrier may reject
               </p>
             )}
           </div>

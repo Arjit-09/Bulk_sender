@@ -134,8 +134,8 @@ export default function InboxPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
       />
       <Topbar
@@ -181,13 +181,13 @@ export default function InboxPage() {
                 </div>
 
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search messages or contacts…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="zs-input pl-8 py-1.5 text-xs"
+                    className="zs-input !pl-9 py-1.5 text-xs"
                   />
                 </div>
               </div>
@@ -208,7 +208,8 @@ export default function InboxPage() {
                 ) : (
                   filteredThreads.map((t) => {
                     const isSelected = activePhone === t.phone;
-                    const initial = t.name ? t.name.charAt(0).toUpperCase() : 'C';
+                    const hasContactName = t.name && t.name !== t.phone;
+                    const initial = hasContactName ? t.name.charAt(0).toUpperCase() : '📱';
 
                     return (
                       <button
@@ -232,12 +233,18 @@ export default function InboxPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
-                            <p className="text-xs font-bold text-[var(--text-heading)] truncate">{t.name || t.phone}</p>
+                            <p className="text-xs font-bold text-[var(--text-heading)] truncate">
+                              {hasContactName ? t.name : t.phone}
+                            </p>
                             <span className="text-[10px] text-[var(--text-muted)] font-medium">
                               {new Date(t.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className="text-[11px] font-mono text-indigo-600 truncate">{t.phone}</p>
+                          {hasContactName ? (
+                            <p className="text-[11px] font-mono text-indigo-600 truncate">{t.phone}</p>
+                          ) : (
+                            <p className="text-[10px] text-emerald-600 font-medium">Direct Mobile (+91)</p>
+                          )}
                           <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">{t.lastMessage}</p>
                         </div>
                       </button>
@@ -269,19 +276,23 @@ export default function InboxPage() {
                       </button>
 
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs">
-                        {activeThread?.name?.charAt(0).toUpperCase() || 'U'}
+                        {activeThread?.name && activeThread.name !== activePhone ? activeThread.name.charAt(0).toUpperCase() : '📱'}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-sm font-bold text-[var(--text-heading)] truncate">
-                            {activeThread?.name || activePhone}
+                            {activeThread?.name && activeThread.name !== activePhone ? activeThread.name : activePhone}
                           </h4>
                           <span className="zs-badge zs-badge-success text-[10px] py-0.5">
                             Connected
                           </span>
                         </div>
-                        <p className="text-xs text-[var(--text-muted)] font-mono truncate">{activePhone}</p>
+                        {activeThread?.name && activeThread.name !== activePhone ? (
+                          <p className="text-xs text-[var(--text-muted)] font-mono truncate">{activePhone}</p>
+                        ) : (
+                          <p className="text-[11px] text-emerald-600 font-medium truncate">Direct Mobile (+91 India)</p>
+                        )}
                       </div>
                     </div>
 

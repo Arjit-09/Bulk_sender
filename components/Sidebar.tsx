@@ -46,7 +46,6 @@ const navSections = [
     label: 'Channels',
     items: [
       { label: 'SMS Campaigns', href: '/campaigns', icon: Send, badge: 'SMS', badgeColor: 'bg-indigo-100 text-indigo-700' },
-      { label: 'WhatsApp', href: '/whatsapp', icon: MessageSquare, badge: 'WA', badgeColor: 'bg-green-100 text-green-700' },
       { label: 'Email Suite', href: '/email', icon: Mail, badge: 'EMAIL', badgeColor: 'bg-cyan-100 text-cyan-700' },
     ],
   },
@@ -54,7 +53,7 @@ const navSections = [
     label: 'Audience',
     items: [
       { label: 'Contacts', href: '/contacts', icon: Users },
-      { label: 'Country Targeting', href: '/countries', icon: Globe },
+      { label: 'US & Canada Routing', href: '/countries', icon: Globe },
       { label: 'Inbox', href: '/inbox', icon: Inbox },
     ],
   },
@@ -84,7 +83,7 @@ export default function Sidebar({
   onOpenQuickSend,
   isOpen = false,
   onClose,
-  orgName = 'Your Organization',
+  orgName = 'ZenithServices',
   planName = 'Starter',
   userRole = 'ADMIN',
 }: SidebarProps) {
@@ -252,7 +251,7 @@ export default function Sidebar({
                 <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
                 Account Balance
               </span>
-              <span className="font-bold text-sm text-[var(--text-primary)]">${balance.toFixed(2)}</span>
+              <span className="font-bold text-sm text-[var(--text-primary)]">${Number(balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="zs-progress-track">
               <div

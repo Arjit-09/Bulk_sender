@@ -28,7 +28,7 @@ export async function sendTelnyxSms(
     override?.fromPhone?.trim() || 
     setting?.fromPhone?.trim() || 
     process.env.TELNYX_PHONE_NUMBER?.trim() || 
-    '';
+    '+18884020949';
 
   if (!apiKey) {
     return {

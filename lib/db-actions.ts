@@ -1,7 +1,6 @@
 'use server';
 
 import prisma from './prisma';
-import { fetchTwilioInboundMessages } from './twilio';
 import { fetchTelnyxInboundMessages } from './telnyx';
 import { dispatchSms } from './sms';
 
@@ -79,7 +78,7 @@ export async function getDashboardStats() {
     const totalSpent = spentResult._sum.cost ? Number(spentResult._sum.cost.toFixed(4)) : 0;
     const balance = setting?.balance ?? 25.0;
 
-    // Aggregate daily activity for the last 7 days dynamically
+    // Aggregate daily activity for the last 7 days
     const now = new Date();
     const daysMap = new Map<string, { day: string; date: string; sent: number; delivered: number; failed: number }>();
     for (let i = 6; i >= 0; i--) {
@@ -100,7 +99,6 @@ export async function getDashboardStats() {
       }
     }
 
-    // Dynamic delivery breakdown
     let delCount = 0;
     let sntCount = 0;
     let failCount = 0;
@@ -288,7 +286,6 @@ export async function createAndRunCampaign(data: {
   customMessage?: string;
   groupName?: string;
 }) {
-  // Fetch target contacts
   const where: any = {};
   if (data.groupName && data.groupName !== 'All Contacts') {
     where.group = { name: data.groupName };
@@ -296,7 +293,6 @@ export async function createAndRunCampaign(data: {
   const targetContacts = await prisma.contact.findMany({ where });
   const total = targetContacts.length;
 
-  // Create campaign
   const campaign = await prisma.campaign.create({
     data: {
       name: data.name.trim(),
@@ -314,7 +310,6 @@ export async function createAndRunCampaign(data: {
     return campaign;
   }
 
-  // Get message text
   let templateContent = data.customMessage || '';
   if (data.templateId) {
     const tpl = await prisma.template.findUnique({ where: { id: data.templateId } });
@@ -324,18 +319,15 @@ export async function createAndRunCampaign(data: {
   let sent = 0;
   let deliv = 0;
   let failed = 0;
-  const unitCost = 0.0079;
+  const unitCost = 0.0075; // Telnyx toll-free US/CA rate
 
   for (const c of targetContacts) {
-    // Replace dynamic variables
     const text = templateContent
       ? templateContent.replace(/\{\{name\}\}/gi, c.name).replace(/\{\{phone\}\}/gi, c.phone)
-      : 'Hello from Bulk SMS Platform';
+      : 'Hello from Zenith Tech SMS Platform';
 
-    // Dispatch via Telnyx/Twilio if configured, or simulated delivery
-    const twilioRes = await dispatchSms(c.phone, text);
-    const isSuccess = twilioRes.success;
-    const status = isSuccess ? 'delivered' : 'failed';
+    const result = await dispatchSms(c.phone, text);
+    const status = result.success ? 'delivered' : 'failed';
 
     await prisma.message.create({
       data: {
@@ -346,12 +338,12 @@ export async function createAndRunCampaign(data: {
         content: text,
         status,
         cost: unitCost,
-        providerSid: twilioRes.sid || null,
+        providerSid: result.sid || null,
       },
     });
 
     sent++;
-    if (isSuccess) deliv++;
+    if (result.success) deliv++;
     else failed++;
   }
 
@@ -382,7 +374,6 @@ export async function getInboxThreads() {
       take: 100,
     });
 
-    // Group messages by contact phone
     const threadMap = new Map<string, {
       phone: string;
       name: string;
@@ -431,12 +422,9 @@ export async function sendDirectMessage(toPhone: string, content: string) {
   try {
     const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
 
-    // Dispatch via Telnyx/Twilio if configured
-    const twilioRes = await dispatchSms(toPhone, content.trim());
-    // Use the actual status from the provider (queued/sent/failed/etc.)
-    // If provider returns a specific status, use it; otherwise infer from success flag
-    const status = twilioRes.success
-      ? (twilioRes.status && ['delivered', 'sent', 'queued'].includes(twilioRes.status) ? twilioRes.status : 'sent')
+    const result = await dispatchSms(toPhone, content.trim());
+    const status = result.success
+      ? (result.status && ['delivered', 'sent', 'queued'].includes(result.status) ? result.status : 'sent')
       : 'failed';
 
     const msg = await prisma.message.create({
@@ -446,8 +434,8 @@ export async function sendDirectMessage(toPhone: string, content: string) {
         toPhone,
         content: content.trim(),
         status,
-        cost: 0.0079,
-        providerSid: twilioRes.sid || null,
+        cost: 0.0075,
+        providerSid: result.sid || null,
       },
     });
 
@@ -456,12 +444,12 @@ export async function sendDirectMessage(toPhone: string, content: string) {
     if (setting) {
       await prisma.setting.update({
         where: { id: setting.id },
-        data: { balance: Math.max(0, setting.balance - 0.0079) },
+        data: { balance: Math.max(0, setting.balance - 0.0075) },
       });
     }
 
-    if (!twilioRes.success && twilioRes.error) {
-      return { ...msg, error: twilioRes.error };
+    if (!result.success && result.error) {
+      return { ...msg, error: result.error };
     }
 
     return msg;
@@ -478,7 +466,7 @@ export async function simulateInboundReply(fromPhone: string, text: string) {
     data: {
       contactId: contact?.id || null,
       direction: 'inbound',
-      toPhone: 'Platform (+1-800-SMS)',
+      toPhone: '+18884020949',
       fromPhone,
       content: text.trim(),
       status: 'delivered',
@@ -494,10 +482,10 @@ export async function getSettings() {
     if (!setting) {
       setting = await prisma.setting.create({
         data: {
-          provider: 'twilio',
+          provider: 'telnyx',
           accountSid: '',
-          authToken: '',
-          fromPhone: '',
+          authToken: process.env.TELNYX_API_KEY || '',
+          fromPhone: process.env.TELNYX_PHONE_NUMBER || '+18884020949',
           balance: 25.0,
         },
       });
@@ -506,10 +494,10 @@ export async function getSettings() {
   } catch {
     return {
       id: '',
-      provider: 'twilio',
+      provider: 'telnyx',
       accountSid: '',
       authToken: '',
-      fromPhone: '',
+      fromPhone: '+18884020949',
       balance: 25.0,
     };
   }
@@ -526,10 +514,10 @@ export async function updateSettings(data: {
   if (!setting) {
     return await prisma.setting.create({
       data: {
-        provider: data.provider || (process.env.TELNYX_API_KEY ? 'telnyx' : 'twilio'),
+        provider: 'telnyx',
         accountSid: data.accountSid || '',
         authToken: data.authToken || '',
-        fromPhone: data.fromPhone || '',
+        fromPhone: data.fromPhone || '+18884020949',
         balance: data.balance ?? 25.0,
       },
     });
@@ -537,7 +525,7 @@ export async function updateSettings(data: {
   return await prisma.setting.update({
     where: { id: setting.id },
     data: {
-      provider: data.provider !== undefined ? data.provider : setting.provider,
+      provider: 'telnyx',
       accountSid: data.accountSid,
       authToken: data.authToken,
       fromPhone: data.fromPhone,
@@ -547,7 +535,6 @@ export async function updateSettings(data: {
 }
 
 export async function clearAllData() {
-  // Allows the user to reset all tables to 0 records for fresh testing
   await prisma.message.deleteMany();
   await prisma.campaign.deleteMany();
   await prisma.contact.deleteMany();
@@ -556,20 +543,11 @@ export async function clearAllData() {
   return { success: true };
 }
 
-// Sync inbound messages — auto-detects provider (Telnyx or Twilio)
+// Sync inbound messages from Telnyx
 export async function syncTwilioInbound() {
-  const setting = await prisma.setting.findFirst();
-  const isTelnyx =
-    setting?.provider === 'telnyx' ||
-    setting?.authToken?.startsWith('KEY') ||
-    Boolean(process.env.TELNYX_API_KEY);
-
-  if (isTelnyx) {
-    return await fetchTelnyxInboundMessages();
-  }
-  return await fetchTwilioInboundMessages();
+  return await fetchTelnyxInboundMessages();
 }
 
-export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string; provider?: string }) {
-  return await dispatchSms(toPhone, 'Test message from Bulk SMS Platform: Telnyx integration connected successfully! 🚀', override);
+export async function testSmsConnection(toPhone: string, override?: { apiKey?: string; fromPhone?: string }) {
+  return await dispatchSms(toPhone, 'Test message from Zenith Tech SMS Platform: Telnyx Toll-Free connected successfully! 🚀', override);
 }

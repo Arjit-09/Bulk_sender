@@ -52,12 +52,16 @@ export default function ContactsPage() {
 
   const handlePhoneChange = (val: string) => {
     let cleaned = val.replace(/[\s\-]/g, '');
-    if (cleaned && !cleaned.startsWith('+')) {
+    if (/^[6-9]\d{9}$/.test(cleaned)) {
+      cleaned = '+91' + cleaned;
+    } else if (cleaned && !cleaned.startsWith('+') && cleaned.length > 10) {
       cleaned = '+' + cleaned;
     }
     setPhone(cleaned);
-    if (cleaned && !/^\+[1-9]\d{6,14}$/.test(cleaned)) {
-      setPhoneError('Must be E.164 format: +[country code][number] e.g. +918920856958');
+    const isIndian = /^\+91[6-9]\d{9}$/.test(cleaned) || /^[6-9]\d{9}$/.test(cleaned);
+    const isE164 = /^\+[1-9]\d{6,14}$/.test(cleaned);
+    if (cleaned && !isIndian && !isE164) {
+      setPhoneError('Must be 10-digit Indian number e.g. 8920856958 or +918920856958');
     } else {
       setPhoneError('');
     }
@@ -143,8 +147,8 @@ export default function ContactsPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="Acme Corp"
-        planName="Growth"
+        orgName="ZenithServices"
+        planName="Starter"
         userRole="SUPER_ADMIN"
       />
       <Topbar
@@ -226,13 +230,13 @@ export default function ContactsPage() {
 
             <div className="zs-card p-4 sm:p-5">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Global Reach</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                  <Globe className="w-4 h-4" />
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Regional Coverage</span>
+                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 font-bold">
+                  🇮🇳
                 </div>
               </div>
-              <p className="text-2xl font-bold text-[var(--text-heading)]">Multi-Country</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Supported via Twilio/Telnyx</p>
+              <p className="text-2xl font-bold text-[var(--text-heading)]">India (+91)</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Fast2SMS / DLT Active Route</p>
             </div>
           </div>
 

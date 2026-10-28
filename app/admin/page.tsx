@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
@@ -11,17 +12,11 @@ import {
 } from 'lucide-react';
 
 const INITIAL_MEMBERS = [
-  { id: 1, name: 'Arjit Sharma', email: 'arjit@acme.com', role: 'ADMIN', status: 'active', lastLogin: '2m ago', campaigns: 14, avatar: 'AS' },
-  { id: 2, name: 'Priya Mehta', email: 'priya@acme.com', role: 'MEMBER', status: 'active', lastLogin: '1h ago', campaigns: 8, avatar: 'PM' },
-  { id: 3, name: 'Rahul Das', email: 'rahul@acme.com', role: 'VIEWER', status: 'active', lastLogin: '1d ago', campaigns: 0, avatar: 'RD' },
-  { id: 4, name: 'Sara Johnson', email: 'sara@acme.com', role: 'MEMBER', status: 'invited', lastLogin: 'Never', campaigns: 0, avatar: 'SJ' },
+  { id: 1, name: 'Arjit Sharma', email: 'arjit@zenithservices.in', role: 'ADMIN', status: 'active', lastLogin: 'Just now', campaigns: 0, avatar: 'AS' },
 ];
 
-const RECENT_CAMPAIGNS = [
-  { id: 1, name: 'Summer SMS Blast', channel: 'sms', by: 'Arjit Sharma', status: 'completed', sent: 8240, date: 'Oct 14' },
-  { id: 2, name: 'Diwali WhatsApp', channel: 'whatsapp', by: 'Priya Mehta', status: 'scheduled', sent: 0, date: 'Oct 20' },
-  { id: 3, name: 'Newsletter Oct', channel: 'email', by: 'Arjit Sharma', status: 'running', sent: 12400, date: 'Oct 15' },
-];
+const RECENT_CAMPAIGNS: any[] = [];
+
 
 const ROLE_BADGES: Record<string, string> = {
   ADMIN: 'zs-badge-primary',
@@ -84,10 +79,10 @@ export default function AdminPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        orgName="Acme Corp"
+        orgName="ZenithServices"
         planName="Growth"
         userRole="ADMIN"
-        balance={87.50}
+        balance={0}
       />
       <Topbar
         title="Admin Panel"
@@ -107,7 +102,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Organization Administration</h1>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)]">Acme Corp workspace settings & team governance</p>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)]">ZenithServices workspace settings & team governance</p>
               </div>
             </div>
 
@@ -172,7 +167,13 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {RECENT_CAMPAIGNS.map((c) => {
+                  {RECENT_CAMPAIGNS.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-xs text-[var(--text-muted)]">
+                        No campaigns yet. <Link href="/campaigns" className="text-indigo-600 font-semibold hover:underline">Create your first campaign →</Link>
+                      </td>
+                    </tr>
+                  ) : RECENT_CAMPAIGNS.map((c) => {
                         const Icon = CHANNEL_ICONS[c.channel];
                         return (
                           <tr key={c.id}>
@@ -295,7 +296,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[var(--text-heading)]">Invite Team Member</h3>
-                <p className="text-xs text-[var(--text-muted)]">Grant access to Acme Corp workspace</p>
+                <p className="text-xs text-[var(--text-muted)]">Grant access to ZenithServices workspace</p>
               </div>
             </div>
 
@@ -316,7 +317,7 @@ export default function AdminPage() {
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Email Address</label>
                 <input
                   type="email"
-                  placeholder="maya@acme.com"
+                  placeholder="maya@zenithservices.in"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="zs-input"
