@@ -16,11 +16,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Find or create contact
-    let contact = await prisma.contact.findFirst({
-      where: { phone: fromPhone },
-    });
-
+    let contact = await prisma.contact.findFirst({ where: { phone: fromPhone } });
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
@@ -31,7 +27,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Save inbound message in PostgreSQL
     await prisma.message.create({
       data: {
         contactId: contact.id,
@@ -45,7 +40,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Return empty TwiML response so Twilio knows it was received
     return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
       status: 200,
       headers: { 'Content-Type': 'text/xml' },

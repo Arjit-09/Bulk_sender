@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
       const messageId = payload?.id || '';
 
       if (fromPhone && content) {
-        // Deduplicate
         const existing = await prisma.message.findFirst({ where: { providerSid: messageId } });
         if (!existing) {
           let contact = await prisma.contact.findFirst({ where: { phone: fromPhone } });
@@ -47,16 +46,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Outbound delivery status update ──────────────────────────────
-    // Telnyx fires 'message.finalized' when delivery is confirmed or failed
     if (eventType === 'message.finalized') {
       const messageId = payload?.id || '';
       const telnyxStatus = payload?.to?.[0]?.status || payload?.status || '';
-      // Map Telnyx statuses: delivered, failed, rejected, sending, queued
       const dbStatus =
         telnyxStatus === 'delivered' ? 'delivered'
         : telnyxStatus === 'failed' || telnyxStatus === 'rejected' ? 'failed'
         : telnyxStatus === 'sending' ? 'sent'
-        : telnyxStatus; // keep as-is for queued etc.
+        : telnyxStatus;
 
       if (messageId && dbStatus) {
         await prisma.message.updateMany({
