@@ -11,6 +11,21 @@ import {
   Sparkles, CheckCircle2
 } from 'lucide-react';
 
+function getPhoneRegionLabel(phone: string): string {
+  if (!phone) return 'Direct SMS';
+  const clean = phone.replace(/[\s()\-.]/g, '');
+  if (clean.startsWith('+1') || /^[2-9]\d{9}$/.test(clean)) {
+    return 'Direct Mobile (US / Canada +1)';
+  }
+  if (clean.startsWith('+91')) {
+    return 'Direct Mobile (India +91)';
+  }
+  if (clean.startsWith('+44')) {
+    return 'Direct Mobile (UK +44)';
+  }
+  return `Direct Mobile (${clean.slice(0, 3)})`;
+}
+
 export default function InboxPage() {
   const [threads, setThreads] = useState<any[]>([]);
   const [activePhone, setActivePhone] = useState<string>('');
@@ -254,7 +269,7 @@ export default function InboxPage() {
                           {hasContactName ? (
                             <p className="text-[11px] font-mono text-indigo-600 truncate">{t.phone}</p>
                           ) : (
-                            <p className="text-[10px] text-emerald-600 font-medium">Direct Mobile (+91)</p>
+                            <p className="text-[10px] text-emerald-600 font-medium">{getPhoneRegionLabel(t.phone)}</p>
                           )}
                           <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">{t.lastMessage}</p>
                         </div>
@@ -302,7 +317,7 @@ export default function InboxPage() {
                         {activeThread?.name && activeThread.name !== activePhone ? (
                           <p className="text-xs text-[var(--text-muted)] font-mono truncate">{activePhone}</p>
                         ) : (
-                          <p className="text-[11px] text-emerald-600 font-medium truncate">Direct Mobile (+91 India)</p>
+                          <p className="text-[11px] text-emerald-600 font-medium truncate">{getPhoneRegionLabel(activePhone)}</p>
                         )}
                       </div>
                     </div>
