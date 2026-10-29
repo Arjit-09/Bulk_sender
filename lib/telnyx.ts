@@ -43,7 +43,8 @@ export async function sendTelnyxSms(
   const TOLL_FREE   = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
   const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
   const TOLL_FREE_PROFILE = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
-  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || '';
+  const DEFAULT_LOCAL_PROFILE = '4001a0c9-9e1c-444e-ad71-a18b1bdeb2da';
+  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || DEFAULT_LOCAL_PROFILE;
 
   if (!fromPhone) {
     if (isIndiaOrInternational || isVirtualNumber) {
@@ -62,8 +63,11 @@ export async function sendTelnyxSms(
   // Determine active API key based on selected sender
   const isUsingLocal = fromPhone.includes('479') || fromPhone === LOCAL_10DLC;
   let activeApiKey = apiKey;
-  if (isUsingLocal && process.env.TELNYX_LOCAL_API_KEY?.trim()) {
-    activeApiKey = process.env.TELNYX_LOCAL_API_KEY.trim();
+  if (isUsingLocal) {
+    const envLocalKey = process.env.TELNYX_LOCAL_API_KEY?.trim();
+    if (envLocalKey && envLocalKey.startsWith('KEY')) {
+      activeApiKey = envLocalKey;
+    }
   }
 
   if (!activeApiKey) {
