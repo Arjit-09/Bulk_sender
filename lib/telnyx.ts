@@ -24,15 +24,26 @@ export async function sendTelnyxSms(
     }
   }
 
-  let fromPhone = 
-    override?.fromPhone?.trim() || 
-    setting?.fromPhone?.trim() || 
-    process.env.TELNYX_PHONE_NUMBER?.trim() || 
-    '+18884020949';
+  let fromPhone = override?.fromPhone?.trim() || setting?.fromPhone?.trim() || '';
 
-  // Force verified toll-free number if stale or incorrect
-  if (fromPhone.includes('479') || fromPhone.includes('482') || !fromPhone.startsWith('+1888')) {
-    fromPhone = process.env.TELNYX_PHONE_NUMBER?.trim() || '+18884020949';
+  // ── Smart Sender Routing ────────────────────────────────────────────
+  // Toll-Free (+18884020949) = best for US/Canada (verified, high throughput)
+  // Local 10DLC (+14795909259) = needed for international (India, etc.)
+  //   because US toll-free numbers are contractually limited to US+Canada.
+  const cleanDest = toPhone.replace(/[\s()\.\-]/g, '');
+  const isInternational = !cleanDest.startsWith('+1') && !/^[2-9]\d{9}$/.test(cleanDest);
+
+  const TOLL_FREE   = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
+  const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
+  const TOLL_FREE_PROFILE  = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
+  // The local number is on the BULK_SMS_APP profile — update env if different
+  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || TOLL_FREE_PROFILE;
+
+  if (!fromPhone) {
+    fromPhone = isInternational ? LOCAL_10DLC : TOLL_FREE;
+    // Also override if user left the setting as toll-free but dest is international
+  } else if (isInternational && (fromPhone.includes('888') || fromPhone.startsWith('+1888'))) {
+    fromPhone = LOCAL_10DLC;
   }
 
   if (!apiKey) {
@@ -63,7 +74,9 @@ export async function sendTelnyxSms(
       cleanTo = '+' + cleanTo;
     }
 
-    const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
+    // Select the correct messaging profile to match the chosen sender number
+    const messagingProfileId = isInternational ? LOCAL_PROFILE : TOLL_FREE_PROFILE;
+
 
     const requestBody: Record<string, string> = {
       from: cleanFrom.startsWith('+') ? cleanFrom : '+' + cleanFrom,
