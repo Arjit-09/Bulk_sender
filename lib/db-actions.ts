@@ -469,7 +469,7 @@ export async function getMessagesForPhone(phone: string) {
   }
 }
 
-export async function sendDirectMessage(toPhone: string, content: string) {
+export async function sendDirectMessage(toPhone: string, content: string, senderOverride?: string) {
   try {
     const targetPhone = canonicalPhone(toPhone) || toPhone;
     const last10 = targetPhone.replace(/[\s()\-.]/g, '').slice(-10);
@@ -484,7 +484,39 @@ export async function sendDirectMessage(toPhone: string, content: string) {
       },
     });
 
-    const result = await dispatchSms(targetPhone, content.trim());
+    let chosenSender = senderOverride?.trim() || '';
+
+    if (!chosenSender) {
+      const clean = targetPhone.replace(/[\s()\-.]/g, '');
+      const isIndiaOrInternational = !clean.startsWith('+1') && !/^[2-9]\d{9}$/.test(clean);
+      const isKnownVirtual =
+        clean.includes('2393753770') ||
+        clean.includes('2393751625') ||
+        clean.includes('8046341990') ||
+        clean.startsWith('+1239375') ||
+        clean.startsWith('1239375');
+
+      let hadLocalInbound = false;
+      try {
+        const localMsg = await prisma.message.findFirst({
+          where: {
+            OR: [
+              { toPhone: { endsWith: last10 }, fromPhone: { contains: '4795909259' } },
+              { fromPhone: { endsWith: last10 }, toPhone: { contains: '4795909259' } },
+            ],
+          },
+        });
+        hadLocalInbound = Boolean(localMsg);
+      } catch {}
+
+      if (isIndiaOrInternational || isKnownVirtual || hadLocalInbound) {
+        chosenSender = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
+      } else {
+        chosenSender = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
+      }
+    }
+
+    const result = await dispatchSms(targetPhone, content.trim(), { fromPhone: chosenSender });
     const rawStatus = result.status;
     const status = result.success
       ? (rawStatus && rawStatus !== 'queued' && rawStatus !== 'delivery_unconfirmed' ? rawStatus : 'sent')
@@ -495,6 +527,7 @@ export async function sendDirectMessage(toPhone: string, content: string) {
         contactId: contact?.id || null,
         direction: 'outbound',
         toPhone: targetPhone,
+        fromPhone: chosenSender,
         content: content.trim(),
         status,
         cost: 0.0075,

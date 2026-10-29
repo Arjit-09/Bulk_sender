@@ -11,19 +11,46 @@ import {
   Sparkles, CheckCircle2
 } from 'lucide-react';
 
+function isVirtualOrInternational(phone: string): boolean {
+  if (!phone) return false;
+  const clean = phone.replace(/[\s()\-.]/g, '');
+  // Not +1 North American → International (e.g. +91 India)
+  if (!clean.startsWith('+1') && !/^[2-9]\d{9}$/.test(clean)) return true;
+  // Known virtual numbers / VoIP (Onvoy, TextNow, etc.)
+  if (
+    clean.includes('2393753770') ||
+    clean.includes('2393751625') ||
+    clean.includes('8046341990') ||
+    clean.startsWith('+1239375') ||
+    clean.startsWith('1239375')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function getPhoneRegionLabel(phone: string): string {
   if (!phone) return 'Direct SMS';
   const clean = phone.replace(/[\s()\-.]/g, '');
+  if (
+    clean.includes('2393753770') ||
+    clean.includes('2393751625') ||
+    clean.includes('8046341990') ||
+    clean.startsWith('+1239375') ||
+    clean.startsWith('1239375')
+  ) {
+    return 'Virtual VoIP (US) • Local Route';
+  }
   if (clean.startsWith('+1') || /^[2-9]\d{9}$/.test(clean)) {
-    return 'Direct Mobile (US / Canada +1)';
+    return 'US Mobile (+1) • Toll-Free Route';
   }
   if (clean.startsWith('+91')) {
-    return 'Direct Mobile (India +91)';
+    return 'India (+91) • Local Route';
   }
   if (clean.startsWith('+44')) {
-    return 'Direct Mobile (UK +44)';
+    return 'UK (+44) • Local Route';
   }
-  return `Direct Mobile (${clean.slice(0, 3)})`;
+  return `International (${clean.slice(0, 3)}) • Local Route`;
 }
 
 export default function InboxPage() {
@@ -32,6 +59,7 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [senderRoute, setSenderRoute] = useState<string>('+18884020949');
   // initialLoading is only true on the very first page load — never flashed during polling
   const [initialLoading, setInitialLoading] = useState(true);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -96,6 +124,18 @@ export default function InboxPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Automatically select the optimal sender number based on the recipient
+  // Rule: Toll-Free for US local cellular numbers only; Local number for virtual VoIP & India
+  useEffect(() => {
+    if (activePhone) {
+      if (isVirtualOrInternational(activePhone)) {
+        setSenderRoute('+14795909259');
+      } else {
+        setSenderRoute('+18884020949');
+      }
+    }
+  }, [activePhone]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activePhone) return;
@@ -103,7 +143,7 @@ export default function InboxPage() {
     setInputText('');
     setSendError(null);
 
-    const result = await sendDirectMessage(activePhone, text) as any;
+    const result = await sendDirectMessage(activePhone, text, senderRoute) as any;
     await loadMessages();
     await loadThreads();
 
@@ -428,23 +468,55 @@ export default function InboxPage() {
 
                   {/* Send Form Bar */}
                   <div className="p-3 sm:p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-card)]">
-                    {/* Quick suggestion chips */}
-                    <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
-                      <span className="text-[10px] text-[var(--text-muted)] flex-shrink-0">Quick reply:</span>
-                      {[
-                        'Thanks! Got your message.',
-                        'Your request is being processed.',
-                        'Can we assist you with anything else?',
-                      ].map((chip) => (
-                        <button
-                          key={chip}
-                          type="button"
-                          onClick={() => setInputText(chip)}
-                          className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] hover:bg-indigo-50 text-[11px] text-[var(--text-secondary)] hover:text-indigo-600 border border-[var(--border-subtle)] hover:border-indigo-200 transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
-                        >
-                          {chip}
-                        </button>
-                      ))}
+                    {/* Route Selector & Quick Suggestion Chips */}
+                    <div className="flex flex-col gap-2 mb-2">
+                      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="text-[10px] text-[var(--text-muted)] font-medium">Route via:</span>
+                          <button
+                            type="button"
+                            onClick={() => setSenderRoute('+18884020949')}
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              senderRoute === '+18884020949'
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-indigo-50 hover:text-indigo-600 border border-[var(--border-subtle)]'
+                            }`}
+                          >
+                            <span>🇺🇸 Toll-Free (+18884020949)</span>
+                            <span className="text-[9px] opacity-80 font-normal">[US Mobile]</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSenderRoute('+14795909259')}
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              senderRoute === '+14795909259'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-emerald-50 hover:text-emerald-700 border border-[var(--border-subtle)]'
+                            }`}
+                          >
+                            <span>📱 Local (+14795909259)</span>
+                            <span className="text-[9px] opacity-80 font-normal">[Virtual & India]</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                        <span className="text-[10px] text-[var(--text-muted)] flex-shrink-0">Quick reply:</span>
+                        {[
+                          'Thanks! Got your message.',
+                          'Your request is being processed.',
+                          'Can we assist you with anything else?',
+                        ].map((chip) => (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => setInputText(chip)}
+                            className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] hover:bg-indigo-50 text-[11px] text-[var(--text-secondary)] hover:text-indigo-600 border border-[var(--border-subtle)] hover:border-indigo-200 transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <form onSubmit={handleSend} className="flex gap-2">

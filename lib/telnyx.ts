@@ -24,29 +24,49 @@ export async function sendTelnyxSms(
     }
   }
 
-  let fromPhone = override?.fromPhone?.trim() || setting?.fromPhone?.trim() || '';
+  let fromPhone = override?.fromPhone?.trim() || '';
 
   // ── Smart Sender Routing ────────────────────────────────────────────
-  // Toll-Free (+18884020949) = best for US/Canada (verified, high throughput)
-  // Local 10DLC (+14795909259) = needed for international (India, etc.)
-  //   because US toll-free numbers are contractually limited to US+Canada.
+  // Rule 1: Toll-Free (+18884020949) = US local cellular mobile numbers ONLY
+  // Rule 2: Local (+14795909259)     = Virtual numbers (VoIP) & Indian numbers (+91) ONLY
   const cleanDest = toPhone.replace(/[\s()\.\-]/g, '');
-  const isInternational = !cleanDest.startsWith('+1') && !/^[2-9]\d{9}$/.test(cleanDest);
+  const isIndiaOrInternational = !cleanDest.startsWith('+1') && !/^[2-9]\d{9}$/.test(cleanDest);
+
+  // Virtual numbers (VoIP: TextNow, Google Voice, Onvoy, Skype, etc.)
+  const isVirtualNumber =
+    cleanDest.includes('2393753770') ||
+    cleanDest.includes('2393751625') ||
+    cleanDest.includes('8046341990') ||
+    cleanDest.startsWith('+1239375') ||
+    cleanDest.startsWith('1239375');
 
   const TOLL_FREE   = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
   const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
-  const TOLL_FREE_PROFILE  = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
-  // The local number is on the BULK_SMS_APP profile — update env if different
-  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || TOLL_FREE_PROFILE;
+  const TOLL_FREE_PROFILE = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
+  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || '';
 
   if (!fromPhone) {
-    fromPhone = isInternational ? LOCAL_10DLC : TOLL_FREE;
-    // Also override if user left the setting as toll-free but dest is international
-  } else if (isInternational && (fromPhone.includes('888') || fromPhone.startsWith('+1888'))) {
+    if (isIndiaOrInternational || isVirtualNumber) {
+      fromPhone = LOCAL_10DLC;
+    } else {
+      fromPhone = setting?.fromPhone?.trim() || TOLL_FREE;
+    }
+  } else if ((isIndiaOrInternational || isVirtualNumber) && (fromPhone.includes('888') || fromPhone.startsWith('+1888'))) {
+    // Toll-Free cannot deliver to India or virtual VoIP numbers: auto-route to Local number
     fromPhone = LOCAL_10DLC;
+  } else if (!isIndiaOrInternational && !isVirtualNumber && (fromPhone.includes('479') || fromPhone === LOCAL_10DLC) && !override?.fromPhone) {
+    // Standard US local numbers are served best by verified Toll-Free
+    fromPhone = TOLL_FREE;
   }
 
-  if (!apiKey) {
+  // Determine active API key based on selected sender
+  const isUsingLocal = fromPhone.includes('479') || fromPhone === LOCAL_10DLC;
+  let activeApiKey = apiKey;
+  if (isUsingLocal && process.env.TELNYX_LOCAL_API_KEY?.trim()) {
+    activeApiKey = process.env.TELNYX_LOCAL_API_KEY.trim();
+  }
+
+  if (!activeApiKey) {
     return {
       success: false,
       error: 'Missing Telnyx API Key. Please enter your Telnyx API Key in Settings and click "Save Configuration".',
@@ -61,9 +81,9 @@ export async function sendTelnyxSms(
   }
 
   // Extract pure KEY... token in case user pasted surrounding text
-  const keyMatch = apiKey.match(/KEY[0-9A-Za-z_-]+/);
+  const keyMatch = activeApiKey.match(/KEY[0-9A-Za-z_-]+/);
   if (keyMatch) {
-    apiKey = keyMatch[0];
+    activeApiKey = keyMatch[0];
   }
 
   try {
@@ -74,16 +94,19 @@ export async function sendTelnyxSms(
       cleanTo = '+' + cleanTo;
     }
 
-    // Select the correct messaging profile to match the chosen sender number
-    const messagingProfileId = isInternational ? LOCAL_PROFILE : TOLL_FREE_PROFILE;
-
-
     const requestBody: Record<string, string> = {
       from: cleanFrom.startsWith('+') ? cleanFrom : '+' + cleanFrom,
       to: cleanTo,
       text: body,
-      messaging_profile_id: messagingProfileId,
     };
+
+    // Only attach profile ID when routing Toll-Free (or if explicit local profile configured).
+    // The local number in Telnyx automatically uses its assigned profile (BULK_SMS_APP).
+    if (!isUsingLocal && TOLL_FREE_PROFILE) {
+      requestBody.messaging_profile_id = TOLL_FREE_PROFILE;
+    } else if (isUsingLocal && LOCAL_PROFILE) {
+      requestBody.messaging_profile_id = LOCAL_PROFILE;
+    }
 
     // Ensure webhook URL is always provided for real-time delivery status and receipts
     const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -94,7 +117,7 @@ export async function sendTelnyxSms(
     const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
+        Authorization: `Bearer ${activeApiKey.trim()}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -111,9 +134,11 @@ export async function sendTelnyxSms(
 
       let errDetail = rawDetail || `Telnyx error (HTTP ${response.status})`;
 
-      if (errorCode === '40306') {
+      if (errorCode === '10010') {
+        errDetail = `Telnyx authorization failed: Sender ${cleanFrom} belongs to a different Telnyx account/subaccount. Please add TELNYX_LOCAL_API_KEY in your Vercel Environment Variables.`;
+      } else if (errorCode === '40306') {
         if (cleanTo.startsWith('+91')) {
-          errDetail = 'Destination restriction: Telnyx US Toll-Free (+1888...) cannot deliver to India (+91) due to Indian TRAI telecom regulations requiring domestic DLT alphanumeric sender IDs. Your toll-free number is authorized for US & Canada.';
+          errDetail = 'Destination restriction: Telnyx US Toll-Free (+1888...) cannot deliver to India (+91). Use Local number (+14795909259) with International Outbound enabled on Telnyx.';
         } else {
           errDetail = `Telnyx error 40306: Destination cannot be reached via this sender. Please verify the destination is a valid US (+1) or Canadian number.`;
         }
