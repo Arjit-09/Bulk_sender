@@ -67,6 +67,8 @@ export async function sendTelnyxSms(
     const envLocalKey = process.env.TELNYX_LOCAL_API_KEY?.trim();
     if (envLocalKey && envLocalKey.startsWith('KEY')) {
       activeApiKey = envLocalKey;
+    } else if (setting?.accountSid && setting.accountSid.startsWith('KEY')) {
+      activeApiKey = setting.accountSid.trim();
     }
   }
 
@@ -77,6 +79,13 @@ export async function sendTelnyxSms(
     };
   }
 
+  if (activeApiKey.includes('*')) {
+    return {
+      success: false,
+      error: 'Your Telnyx API Key in Vercel contains masked asterisks (***). Please paste the full unmasked key (e.g. KEY01A188..._vHfY...) into TELNYX_LOCAL_API_KEY on Vercel.',
+    };
+  }
+
   if (!fromPhone) {
     return {
       success: false,
@@ -84,7 +93,7 @@ export async function sendTelnyxSms(
     };
   }
 
-  // Extract pure KEY... token in case user pasted surrounding text
+  // Extract pure KEY... token in case user pasted surrounding text or quotes
   const keyMatch = activeApiKey.match(/KEY[0-9A-Za-z_-]+/);
   if (keyMatch) {
     activeApiKey = keyMatch[0];
