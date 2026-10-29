@@ -17,27 +17,38 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  // initialLoading is only true on the very first page load — never flashed during polling
+  const [initialLoading, setInitialLoading] = useState(true);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showThreadList, setShowThreadList] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activePhoneRef = useRef<string>('');
 
-  const loadThreads = useCallback(async () => {
-    setLoading(true);
+  // Keep ref in sync so callbacks don't go stale
+  useEffect(() => { activePhoneRef.current = activePhone; }, [activePhone]);
+
+  // Background thread refresh — never flashes loading spinner
+  const refreshThreads = useCallback(async () => {
     try {
       const data = await getInboxThreads();
       setThreads(data || []);
-      if (data && data.length > 0 && !activePhone) {
+      // Auto-select first thread only if nothing selected yet
+      if (data && data.length > 0 && !activePhoneRef.current) {
         setActivePhone(data[0].phone);
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
-  }, [activePhone]);
+  }, []);
+
+  // loadThreads = initial load (shows spinner once)
+  const loadThreads = useCallback(async () => {
+    setInitialLoading(true);
+    await refreshThreads();
+    setInitialLoading(false);
+  }, [refreshThreads]);
 
   const loadMessages = useCallback(async () => {
     if (!activePhone) return;
@@ -57,14 +68,14 @@ export default function InboxPage() {
     loadMessages();
   }, [loadMessages]);
 
-  // Periodic poll for inbound updates
+  // Periodic background poll — uses refreshThreads (no spinner), not loadThreads
   useEffect(() => {
     const interval = setInterval(() => {
       loadMessages();
-      loadThreads();
-    }, 4000);
+      refreshThreads();
+    }, 6000);
     return () => clearInterval(interval);
-  }, [loadMessages, loadThreads]);
+  }, [loadMessages, refreshThreads]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -194,7 +205,7 @@ export default function InboxPage() {
 
               {/* Thread List Items */}
               <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-subtle)]">
-                {loading ? (
+                {initialLoading ? (
                   <div className="p-6 text-center text-xs text-[var(--text-muted)]">
                     <div className="inline-block w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2" />
                     <p>Loading messages…</p>

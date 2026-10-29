@@ -72,10 +72,11 @@ export async function sendTelnyxSms(
       messaging_profile_id: messagingProfileId,
     };
 
-    // Add webhook for delivery receipts only if app URL is configured
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-      requestBody.webhook_url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/telnyx`;
-    }
+    // Ensure webhook URL is always provided for real-time delivery status and receipts
+    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/telnyx`
+      : 'https://www.zenithtech.site/api/webhooks/telnyx';
+    requestBody.webhook_url = webhookUrl;
 
     const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',

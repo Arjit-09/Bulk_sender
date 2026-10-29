@@ -366,12 +366,21 @@ export async function deleteCampaign(id: string) {
 }
 
 // ======================= TWO-WAY INBOX =======================
+function canonicalPhone(raw: string): string {
+  if (!raw) return '';
+  const clean = raw.replace(/[\s()\-.]/g, '').trim();
+  if (/^[2-9]\d{9}$/.test(clean)) return '+1' + clean;
+  if (clean.length === 11 && clean.startsWith('1')) return '+' + clean;
+  if (!clean.startsWith('+') && clean.length >= 7) return '+' + clean;
+  return clean;
+}
+
 export async function getInboxThreads() {
   try {
     const messages = await prisma.message.findMany({
       orderBy: { sentAt: 'desc' },
       include: { contact: true },
-      take: 100,
+      take: 200,
     });
 
     const threadMap = new Map<string, {
@@ -385,15 +394,26 @@ export async function getInboxThreads() {
     }>();
 
     for (const msg of messages) {
-      const phone = msg.direction === 'inbound' ? (msg.fromPhone || msg.toPhone) : msg.toPhone;
+      // For inbound, the conversation partner is the sender (fromPhone).
+      // For outbound, the conversation partner is the recipient (toPhone).
+      const rawPartner = msg.direction === 'inbound'
+        ? (msg.fromPhone || msg.toPhone)
+        : msg.toPhone;
+      const phone = canonicalPhone(rawPartner) || rawPartner;
+
       if (!threadMap.has(phone)) {
+        const resolvedStatus =
+          msg.status === 'delivery_unconfirmed' || msg.status === 'queued'
+            ? 'sent'
+            : msg.status;
+
         threadMap.set(phone, {
           phone,
           name: msg.contact?.name || phone,
           lastMessage: msg.content,
           lastTimestamp: msg.sentAt,
           direction: msg.direction,
-          status: msg.status,
+          status: resolvedStatus,
           unreadCount: msg.direction === 'inbound' ? 1 : 0,
         });
       }
@@ -407,21 +427,40 @@ export async function getInboxThreads() {
 
 export async function getMessagesForPhone(phone: string) {
   try {
+    const clean = phone.replace(/[\s()\-.]/g, '').trim();
+    const withPlus = clean.startsWith('+') ? clean : '+' + clean;
+    const withoutPlus = clean.startsWith('+') ? clean.slice(1) : clean;
+    const last10 = clean.slice(-10);
+
+    const matchVariants = Array.from(new Set([phone, clean, withPlus, withoutPlus])).filter(Boolean);
+
     const msgs = await prisma.message.findMany({
       where: {
-        OR: [{ toPhone: phone }, { fromPhone: phone }],
+        OR: [
+          { toPhone: { in: matchVariants } },
+          { fromPhone: { in: matchVariants } },
+          { toPhone: { endsWith: last10 } },
+          { fromPhone: { endsWith: last10 } },
+        ],
       },
       orderBy: { sentAt: 'asc' },
     });
 
-    // Auto-resolve any legacy stuck 'queued' messages to 'sent'
-    const queuedIds = msgs.filter((m) => m.status === 'queued').map((m) => m.id);
-    if (queuedIds.length > 0) {
+    // Auto-resolve any legacy stuck 'queued' or 'delivery_unconfirmed' messages to 'sent'
+    const pendingIds = msgs
+      .filter((m) => m.status === 'queued' || m.status === 'delivery_unconfirmed')
+      .map((m) => m.id);
+
+    if (pendingIds.length > 0) {
       await prisma.message.updateMany({
-        where: { id: { in: queuedIds } },
+        where: { id: { in: pendingIds } },
         data: { status: 'sent' },
       });
-      return msgs.map((m) => (m.status === 'queued' ? { ...m, status: 'sent' } : m));
+      return msgs.map((m) =>
+        m.status === 'queued' || m.status === 'delivery_unconfirmed'
+          ? { ...m, status: 'sent' }
+          : m
+      );
     }
 
     return msgs;
@@ -432,18 +471,30 @@ export async function getMessagesForPhone(phone: string) {
 
 export async function sendDirectMessage(toPhone: string, content: string) {
   try {
-    const contact = await prisma.contact.findFirst({ where: { phone: toPhone } });
+    const targetPhone = canonicalPhone(toPhone) || toPhone;
+    const last10 = targetPhone.replace(/[\s()\-.]/g, '').slice(-10);
 
-    const result = await dispatchSms(toPhone, content.trim());
+    const contact = await prisma.contact.findFirst({
+      where: {
+        OR: [
+          { phone: targetPhone },
+          { phone: toPhone },
+          { phone: { endsWith: last10 } },
+        ],
+      },
+    });
+
+    const result = await dispatchSms(targetPhone, content.trim());
+    const rawStatus = result.status;
     const status = result.success
-      ? (result.status && result.status !== 'queued' ? result.status : 'sent')
+      ? (rawStatus && rawStatus !== 'queued' && rawStatus !== 'delivery_unconfirmed' ? rawStatus : 'sent')
       : 'failed';
 
     const msg = await prisma.message.create({
       data: {
         contactId: contact?.id || null,
         direction: 'outbound',
-        toPhone,
+        toPhone: targetPhone,
         content: content.trim(),
         status,
         cost: 0.0075,
