@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Send, Sparkles, AlertCircle, PhoneCall } from 'lucide-react';
+import { X, Send, Sparkles, AlertCircle, PhoneCall, ShieldCheck, MessageSquare } from 'lucide-react';
 import { sendDirectMessage, getContacts, getTemplates } from '@/lib/db-actions';
+import { inspectDestination, RouteInspection } from '@/lib/telnyx';
 
 interface QuickSendModalProps {
   isOpen: boolean;
@@ -14,24 +15,24 @@ interface QuickSendModalProps {
 export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: QuickSendModalProps) {
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [channel, setChannel] = useState<'sms' | 'whatsapp'>('sms');
+  const [routePreference, setRoutePreference] = useState<'auto' | 'toll_free' | 'local'>('auto');
   const [contacts, setContacts] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [sending, setSending] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const [phoneError, setPhoneError] = useState('');
+  const [inspection, setInspection] = useState<RouteInspection | null>(null);
 
-  // Validate phone — accept any E.164, warn if not US/CA
   const handlePhoneChange = (val: string) => {
     const cleaned = val.replace(/[\s()\-.]/g, '');
     setPhone(cleaned);
 
-    const isE164 = /^\+[1-9]\d{6,14}$/.test(cleaned);
-    const isTenDigit = /^[2-9]\d{9}$/.test(cleaned);
-
-    if (cleaned && cleaned.length > 5 && !isE164 && !isTenDigit) {
-      setPhoneError('Enter a valid phone number in E.164 format (e.g. +14155552671 or +918920856958)');
+    if (cleaned.length >= 10) {
+      const formatted = cleaned.startsWith('+') ? cleaned : (cleaned.length === 10 ? '+1' + cleaned : '+' + cleaned);
+      const res = inspectDestination(formatted);
+      setInspection(res);
     } else {
-      setPhoneError('');
+      setInspection(null);
     }
   };
 
@@ -56,7 +57,6 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
     }
 
     let targetPhone = phone.trim().replace(/[\s()\-.]/g, '');
-    // Auto-prefix 10-digit US/CA numbers
     if (/^[2-9]\d{9}$/.test(targetPhone)) {
       targetPhone = '+1' + targetPhone;
     } else if (/^1[2-9]\d{9}$/.test(targetPhone)) {
@@ -65,18 +65,18 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
       targetPhone = '+' + targetPhone;
     }
 
-    if (!/^\+[1-9]\d{6,14}$/.test(targetPhone)) {
-      setStatusMsg(
-        `❌ Invalid number: "${phone}". Please enter a valid phone number in E.164 format.`
-      );
-      return;
-    }
-
     setSending(true);
     setStatusMsg('');
 
     try {
-      const res = await sendDirectMessage(targetPhone, message);
+      const res = await sendDirectMessage(
+        targetPhone,
+        message,
+        undefined,
+        routePreference,
+        channel
+      );
+
       if (res && (res as any).error) {
         setStatusMsg(`Notice: ${(res as any).error}`);
         (onSuccess || onSent)?.();
@@ -93,148 +93,194 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
     }
   };
 
-  const applyTemplate = (tplContent: string) => {
-    setMessage(tplContent);
-  };
-
   return (
-    <div className="zs-modal-overlay p-4">
-      <div className="zs-modal p-6 relative max-w-lg">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Title */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-md shadow-indigo-200">
-            <Send className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-[var(--text-heading)]">Quick Send SMS</h2>
-            <p className="text-xs text-[var(--text-muted)]">Via Telnyx Toll-Free · US & Canada Only</p>
-          </div>
-        </div>
-
-        {/* Provider Badge */}
-        <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-            <PhoneCall className="w-3.5 h-3.5 text-white" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-emerald-800">🇺🇸 🇨🇦 Telnyx Verified Toll-Free</p>
-            <p className="text-[11px] text-emerald-700 font-mono">Sender: +1 (888) 402-0949 · Attempts delivery to any country</p>
-          </div>
-        </div>
-
-        {statusMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{statusMsg}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSend} className="space-y-4">
-          {/* Recipient Input & Contact Picker */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                Recipient Phone Number
-              </label>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
+      <div className="relative w-full max-w-lg bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+              <Send className="w-4 h-4" />
             </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="+14155552671 or 10-digit US/CA number"
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                className={`zs-input flex-1 ${phoneError ? 'border-rose-400 focus:border-rose-500' : ''}`}
-                required
-              />
-              {contacts.length > 0 && (
-                <select
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-2.5 py-2 text-xs text-[var(--text-secondary)] focus:outline-none cursor-pointer hover:border-[var(--border-strong)]"
-                >
-                  <option value="">Pick Contact</option>
-                  {contacts.map((c) => (
-                    <option key={c.id} value={c.phone}>
-                      {c.name} ({c.phone})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-            {phoneError ? (
-              <p className="mt-1.5 text-[11px] text-rose-600 flex items-center gap-1">
-                <span>⚠️</span> {phoneError}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
-                💡 Sent via <span className="text-emerald-600 font-mono font-semibold">+18884020949</span> (Telnyx Toll-Free) · For non-US/CA numbers, Telnyx will try but carrier may reject
-              </p>
-            )}
-          </div>
-
-          {/* Template Quick Insert */}
-          {templates.length > 0 && (
             <div>
-              <span className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1.5 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-600" /> Insert Saved Template:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {templates.slice(0, 4).map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    onClick={() => applyTemplate(tpl.content)}
-                    className="px-2.5 py-1 rounded-lg bg-[var(--bg-elevated)] hover:bg-indigo-50 border border-[var(--border-color)] hover:border-indigo-200 text-[11px] text-indigo-700 font-medium transition-all cursor-pointer"
-                  >
-                    {tpl.name}
-                  </button>
-                ))}
+              <h2 className="text-sm font-bold text-[var(--text-heading)]">Direct Omnichannel Dispatch</h2>
+              <p className="text-[11px] text-[var(--text-muted)]">US & Canada Dual-Route Telnyx + WhatsApp</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSend} className="p-6 space-y-4">
+          {/* Channel Selector */}
+          <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--bg-elevated)] rounded-xl border border-[var(--border-subtle)]">
+            <button
+              type="button"
+              onClick={() => setChannel('sms')}
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+                channel === 'sms'
+                  ? 'bg-[var(--bg-card)] text-blue-500 shadow-sm border border-blue-500/30'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Telnyx SMS (US & CA)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChannel('whatsapp')}
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+                channel === 'whatsapp'
+                  ? 'bg-[var(--bg-card)] text-emerald-600 shadow-sm border border-emerald-200/50'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>WhatsApp Suite</span>
+            </button>
+          </div>
+
+          {/* Telnyx Route Preference (if SMS) */}
+          {channel === 'sms' && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                Telnyx Sender Route
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRoutePreference('auto')}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    routePreference === 'auto'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
+                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                  }`}
+                >
+                  <p>Smart Auto</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">AI Carrier Inspect</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoutePreference('toll_free')}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    routePreference === 'toll_free'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
+                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                  }`}
+                >
+                  <p>Toll-Free</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">+1 (888) 402-0949</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoutePreference('local')}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    routePreference === 'local'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
+                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                  }`}
+                >
+                  <p>Local 10DLC</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">+1 (479) 590-9259</p>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Message Textarea */}
+          {/* Recipient Phone */}
           <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">Message Body</label>
-              <span className="text-[11px] font-medium text-indigo-600">
-                {charCount} chars • {segments} {segments === 1 ? 'segment' : 'segments'}
+            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              Recipient Phone Number (US & Canada)
+            </label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              placeholder="e.g. +14155552671 or 4155552671"
+              className="zs-input text-xs font-mono"
+              required
+            />
+            {inspection && (
+              <div className="mt-2 p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-400 flex items-center justify-between">
+                <span className="font-semibold">{inspection.carrierLabel}</span>
+                <span className="font-mono text-[10px] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded border border-blue-500/20 text-[var(--text-primary)]">
+                  {inspection.suggestedSender}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Templates fast select */}
+          {templates.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                Insert Saved Template
+              </label>
+              <select
+                onChange={(e) => {
+                  const t = templates.find((tpl) => tpl.id === e.target.value);
+                  if (t) setMessage(t.content);
+                }}
+                className="zs-input text-xs"
+                defaultValue=""
+              >
+                <option value="">-- Choose a template --</option>
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name} ({tpl.channel.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Message Content */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-[var(--text-secondary)]">Message Text</label>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                {charCount} chars • {segments} segment{segments > 1 ? 's' : ''}
               </span>
             </div>
             <textarea
               rows={4}
-              placeholder="Type your SMS message here..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="zs-input resize-none"
+              placeholder="Type your message here... Use {{name}} for dynamic tags."
+              className="zs-input text-xs resize-none"
               required
             />
           </div>
 
-          {/* Actions */}
-          <div className="pt-2 flex justify-end gap-3">
+          {statusMsg && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{statusMsg}</span>
+            </div>
+          )}
+
+          {/* Submit */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-color)]">
             <button
               type="button"
               onClick={onClose}
-              className="zs-btn-secondary"
+              className="zs-btn-secondary text-xs py-2 px-4"
+              disabled={sending}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={sending}
-              className="zs-btn-primary"
+              className="zs-btn-primary text-xs py-2 px-5"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{sending ? 'Dispatching...' : 'Dispatch Message'}</span>
+              <span>{sending ? 'Dispatching...' : 'Send Message Now'}</span>
             </button>
           </div>
         </form>

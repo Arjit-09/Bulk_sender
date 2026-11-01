@@ -8,16 +8,58 @@ generator client {
 }
 
 // ────────────────────────────────────────────────────────────
-// SETTINGS (single-row config: Telnyx API key, from number, balance)
+// USERS & RBAC (Authentication & Roles)
+// ────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   @default("password123")
+  role      String   @default("ADMIN") // SUPER_ADMIN, ADMIN, MEMBER
+  avatar    String?  @default("AS")
+  status    String   @default("active") // active, invited, suspended
+  lastLogin DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ────────────────────────────────────────────────────────────
+// SETTINGS (Dual Telnyx Account Config, WhatsApp, Email, Billing)
 // ────────────────────────────────────────────────────────────
 model Setting {
-  id         String   @id @default(cuid())
-  provider   String   @default("telnyx")
-  accountSid String?  @default("")
-  authToken  String?  @default("")
-  fromPhone  String?  @default("+18884020949")
-  balance    Float    @default(25.0)
-  updatedAt  DateTime @updatedAt
+  id              String   @id @default(cuid())
+  provider        String   @default("telnyx")
+  accountSid      String?  @default("")
+  authToken       String?  @default("")
+  fromPhone       String?  @default("+18884020949")
+  balance         Float    @default(25.0)
+
+  // Telnyx Account 1: Toll-Free (+18884020949) for US/CA physical mobile
+  tollFreeNumber    String?  @default("+18884020949")
+  tollFreeApiKey    String?  @default("")
+  tollFreeProfileId String?  @default("4001a0fd-9be4-4b36-a8ef-7dfd7462992b")
+
+  // Telnyx Account 2: Local 10DLC (+14795909259) for VoIP/Virtual & specialized routes
+  localNumber       String?  @default("+14795909259")
+  localApiKey       String?  @default("")
+  localProfileId    String?  @default("4001a0c9-9e1c-444e-ad71-a18b1bdeb2da")
+
+  // WhatsApp Suite Configuration
+  waPhoneNumberId   String?  @default("")
+  waBusinessId      String?  @default("")
+  waApiKey          String?  @default("")
+  waWebhookToken    String?  @default("zenith_wa_webhook_token")
+
+  // Email Suite Configuration
+  emailProvider     String?  @default("smtp") // smtp, sendgrid, resend
+  emailFromAddr     String?  @default("notifications@zenithtech.site")
+  emailFromName     String?  @default("ZenithTech Platform")
+  smtpHost          String?  @default("smtp.mailgun.org")
+  smtpPort          Int?     @default(587)
+  smtpUser          String?  @default("")
+  smtpPass          String?  @default("")
+
+  updatedAt       DateTime @updatedAt
 }
 
 // ────────────────────────────────────────────────────────────
@@ -26,48 +68,58 @@ model Setting {
 model ContactGroup {
   id        String    @id @default(cuid())
   name      String    @unique
-  color     String?   @default("#6366f1")
+  color     String?   @default("#f97316")
   contacts  Contact[]
   createdAt DateTime  @default(now())
 }
 
 // ────────────────────────────────────────────────────────────
-// CONTACTS
+// CONTACTS (Targeted for US & Canada)
 // ────────────────────────────────────────────────────────────
 model Contact {
-  id        String        @id @default(cuid())
-  name      String
-  phone     String
-  email     String?
-  status    String        @default("active") // active, unsubscribed, bounced
-  groupId   String?
-  group     ContactGroup? @relation(fields: [groupId], references: [id])
-  messages  Message[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id          String        @id @default(cuid())
+  name        String
+  phone       String
+  email       String?
+  country     String        @default("US") // US, CA
+  carrierType String?       @default("mobile") // mobile, voip, landline
+  notes       String?
+  status      String        @default("active") // active, unsubscribed, bounced
+  groupId     String?
+  group       ContactGroup? @relation(fields: [groupId], references: [id])
+  messages    Message[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@index([phone])
 }
 
 // ────────────────────────────────────────────────────────────
-// TEMPLATES
+// TEMPLATES (Omnichannel: SMS, WhatsApp, Email)
 // ────────────────────────────────────────────────────────────
 model Template {
-  id        String     @id @default(cuid())
-  name      String
-  content   String
-  category  String     @default("General")
-  campaigns Campaign[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          String     @id @default(cuid())
+  name        String
+  channel     String     @default("sms") // sms, whatsapp, email
+  content     String
+  category    String     @default("General")
+  subject     String?    // For email
+  metaHeader  String?    // For WhatsApp header
+  metaFooter  String?    // For WhatsApp footer
+  metaButtons String?    // JSON string for WhatsApp action buttons
+  campaigns   Campaign[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 // ────────────────────────────────────────────────────────────
-// CAMPAIGNS
+// CAMPAIGNS (Omnichannel Broadcasts)
 // ────────────────────────────────────────────────────────────
 model Campaign {
   id          String    @id @default(cuid())
   name        String
+  channel     String    @default("sms") // sms, whatsapp, email
+  senderRoute String?   @default("toll_free") // toll_free, local, whatsapp, email
   templateId  String?
   template    Template? @relation(fields: [templateId], references: [id])
   groupName   String?   @default("All Contacts")
@@ -85,7 +137,7 @@ model Campaign {
 }
 
 // ────────────────────────────────────────────────────────────
-// SMS MESSAGES
+// MESSAGES (SMS, WhatsApp, Email with 2-way inbox & deletion)
 // ────────────────────────────────────────────────────────────
 model Message {
   id          String    @id @default(cuid())
@@ -93,15 +145,32 @@ model Message {
   contact     Contact?  @relation(fields: [contactId], references: [id])
   campaignId  String?
   campaign    Campaign? @relation(fields: [campaignId], references: [id])
-  direction   String    @default("outbound")
+  channel     String    @default("sms") // sms, whatsapp, email
+  senderRoute String?   @default("toll_free") // toll_free, local, whatsapp, email
+  direction   String    @default("outbound") // outbound, inbound
   toPhone     String
   fromPhone   String?
   content     String
   status      String    @default("pending") // delivered, sent, failed, pending, queued
   cost        Float     @default(0.0)
   providerSid String?
+  isDeleted   Boolean   @default(false)
   sentAt      DateTime  @default(now())
 
   @@index([sentAt])
   @@index([toPhone])
+}
+
+// ────────────────────────────────────────────────────────────
+// AUDIT LOGS (Admin & Super Admin activity tracking)
+// ────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  userEmail String
+  action    String
+  details   String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

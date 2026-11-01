@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/lib/auth-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ZenithServices — Omnichannel Marketing Platform',
-  description: 'Enterprise-grade multi-channel marketing platform. Send SMS, WhatsApp & Email campaigns globally with country targeting, analytics, and team collaboration.',
-  keywords: 'bulk SMS, WhatsApp marketing, email campaigns, omnichannel, marketing automation',
+  title: 'ZenithTech PaaS — Bulk SMS, WhatsApp & Email Platform (US & Canada)',
+  description: 'Enterprise-grade omnichannel messaging platform. Dual Telnyx routing (Toll-Free & Local 10DLC), WhatsApp Business Suite, and high-deliverability email marketing.',
+  keywords: 'bulk SMS, US SMS, Canada SMS, Telnyx Toll-Free, WhatsApp Business API, email campaigns, PaaS',
   openGraph: {
-    title: 'ZenithServices',
-    description: 'Reach your customers across SMS, WhatsApp and Email globally.',
+    title: 'ZenithTech PaaS — US & Canada Omnichannel Cloud',
+    description: 'High-throughput Telnyx messaging, WhatsApp Business suite, and real-time inbox.',
     type: 'website',
   },
 };
@@ -37,7 +38,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} font-sans min-h-full antialiased overflow-x-hidden`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

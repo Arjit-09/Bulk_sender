@@ -4,70 +4,136 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
+import { sendEmailMessage } from '@/lib/email';
 import {
   Mail, Plus, Send, BarChart2, FileText, Eye, MousePointer,
   TrendingUp, Users, CheckCircle2, AlertCircle, X, Sparkles,
-  CheckCheck, Globe, Search
+  CheckCheck, Globe, Search, RefreshCw, Trash2
 } from 'lucide-react';
 
 const INITIAL_EMAIL_CAMPAIGNS = [
-  { id: 1, name: 'Diwali Festive Newsletter', subject: '🪔 Exclusive Festive Deals Inside!', country: '🇮🇳 Pan India', sent: 18200, delivered: 17640, opened: 7890, clicked: 2340, status: 'completed', date: 'Oct 13' },
-  { id: 2, name: 'Product Launch Blast', subject: 'Introducing ZenithTech Suite ✨', country: '🇮🇳 Delhi NCR + Mumbai', sent: 24000, delivered: 23100, opened: 9420, clicked: 3120, status: 'running', date: 'Oct 15' },
-  { id: 3, name: 'India Tech Conference', subject: 'Tickets now live for Bengaluru Tech Summit', country: '🇮🇳 Bengaluru', sent: 12000, delivered: 11850, opened: 5900, clicked: 1820, status: 'completed', date: 'Oct 20' },
+  {
+    id: 1,
+    name: 'US Summer Enterprise Blast',
+    subject: '⚡ Exclusive 25% Off ZenithTech Omnichannel PaaS',
+    audience: '🇺🇸 US Verified Customers',
+    sent: 14200,
+    delivered: 13980,
+    opened: 6420,
+    clicked: 2180,
+    status: 'completed',
+    date: 'Oct 24',
+  },
+  {
+    id: 2,
+    name: 'Canada VIP Product Launch',
+    subject: 'Now Live in Ontario, Quebec & BC: Instant Toll-Free SMS',
+    audience: '🇨🇦 Canada VIP Members',
+    sent: 8500,
+    delivered: 8410,
+    opened: 3940,
+    clicked: 1420,
+    status: 'running',
+    date: 'Oct 28',
+  },
+  {
+    id: 3,
+    name: 'Transactional Onboarding Notice',
+    subject: 'Your Dual Telnyx Routing Credentials Are Active',
+    audience: 'All Registered Leads',
+    sent: 3200,
+    delivered: 3180,
+    opened: 2100,
+    clicked: 980,
+    status: 'completed',
+    date: 'Oct 29',
+  },
 ];
 
 const EMAIL_TEMPLATES = [
-  { id: 1, name: 'Modern Newsletter', category: 'Marketing', description: 'Clean layout with hero image, 2-column feature blocks, and CTA button.', preview: '🎨 Rich HTML' },
-  { id: 2, name: 'Product Announcement', category: 'Updates', description: 'Dark/light accent announcement card with product badges and pricing table.', preview: '⚡ High Converting' },
-  { id: 3, name: 'Welcome Onboarding', category: 'Lifecycle', description: 'Step-by-step onboarding email with quick-start checklist.', preview: '👋 Onboarding' },
+  {
+    id: 1,
+    name: 'Modern SaaS Newsletter',
+    category: 'Marketing',
+    subject: 'Your Weekly Platform Highlights',
+    content: `<h2>Hi {{name}},</h2><p>Here are your weekly deliverability metrics across US & Canadian mobile carriers.</p><p><a href="https://zenithtech.site" style="background:#f97316;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block;">View Analytics Dashboard</a></p>`,
+  },
+  {
+    id: 2,
+    name: 'Order & Shipping Notification',
+    category: 'Transactional',
+    subject: 'Your Order #{{order_id}} has shipped!',
+    content: `<h2>Order Shipped!</h2><p>Hello {{name}}, your package has left our distribution center and is en route via FedEx Priority.</p>`,
+  },
+  {
+    id: 3,
+    name: 'Security & API Key Notice',
+    category: 'Utility',
+    subject: 'Security Alert: New Session Login',
+    content: `<h2>Security Update</h2><p>Hi {{name}}, your Telnyx Dual API keys were successfully rotated from IP {{ip_address}}.</p>`,
+  },
 ];
 
-const STATUS_STYLES: Record<string, string> = {
-  completed: 'zs-badge-success',
-  running:   'zs-badge-info',
-  scheduled: 'zs-badge-warning',
-  draft:     'zs-badge-neutral',
-};
-
-export default function EmailPage() {
+export default function EmailSuitePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'campaigns' | 'templates'>('campaigns');
-  const [showCompose, setShowCompose] = useState(false);
   const [campaigns, setCampaigns] = useState(INITIAL_EMAIL_CAMPAIGNS);
+  const [templates, setTemplates] = useState(EMAIL_TEMPLATES);
   const [search, setSearch] = useState('');
+  const [showCompose, setShowCompose] = useState(false);
 
-  // Compose form state
-  const [form, setForm] = useState({
-    name: '', subject: '', fromName: 'ZenithServices Marketing', fromEmail: 'hello@zenithservices.com', toCountries: ['🌍 Global'], body: '',
-  });
+  // Form states
+  const [campName, setCampName] = useState('');
+  const [campSubject, setCampSubject] = useState('');
+  const [campAudience, setCampAudience] = useState('🇺🇸 US Verified Customers');
+  const [campBody, setCampBody] = useState('');
+  const [testEmailTo, setTestEmailTo] = useState('alex.wright@sfbaytech.com');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   const handleComposeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.subject.trim()) return;
+    if (!campName.trim() || !campSubject.trim()) return;
 
     const newCamp = {
       id: Date.now(),
-      name: form.name.trim(),
-      subject: form.subject.trim(),
-      country: form.toCountries.join(', ') || 'Global',
-      sent: 8500,
-      delivered: 8320,
-      opened: 3410,
-      clicked: 1040,
+      name: campName.trim(),
+      subject: campSubject.trim(),
+      audience: campAudience,
+      sent: 2500,
+      delivered: 2480,
+      opened: 1120,
+      clicked: 450,
       status: 'running',
       date: 'Today',
     };
 
     setCampaigns([newCamp, ...campaigns]);
     setShowCompose(false);
-    setForm({ name: '', subject: '', fromName: 'ZenithServices Marketing', fromEmail: 'hello@zenithservices.com', toCountries: ['🌍 Global'], body: '' });
+    setCampName('');
+    setCampSubject('');
+    setCampBody('');
   };
 
-  const filteredCampaigns = campaigns.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.subject.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleSendTestEmail = async () => {
+    if (!testEmailTo) return;
+    setSendingTest(true);
+    setTestResult(null);
+
+    try {
+      const res = await sendEmailMessage({
+        toEmail: testEmailTo,
+        subject: campSubject || 'Test Dispatch from ZenithTech Email Suite',
+        content: campBody || 'This is a test broadcast from ZenithTech Omnichannel PaaS.',
+      });
+      setTestResult(res);
+    } catch (err: any) {
+      setTestResult({ success: false, error: err.message });
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -75,329 +141,315 @@ export default function EmailPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        orgName="ZenithServices"
-        planName="Starter"
-        userRole="SUPER_ADMIN"
-        balance={0}
       />
       <Topbar
-        title="Email Suite"
-        subtitle="SendGrid · AWS SES · Mailgun integration for high-deliverability email marketing"
+        title="Email Suite PaaS"
+        subtitle="High-deliverability enterprise email marketing & transactional broadcast engine"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
         <div className="max-w-[1500px] mx-auto space-y-6">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-200">
-                <Mail className="w-5 h-5" />
+          {/* Banner */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 text-white shadow-xl shadow-cyan-600/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">
+                <Mail className="w-3.5 h-3.5" />
+                <span>Email PaaS Cloud</span>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Email Marketing Suite</h1>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)]">Enterprise email dispatch with verified domain authentication (DKIM, SPF, DMARC)</p>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                Enterprise Email Delivery Suite
+              </h1>
+              <p className="text-xs sm:text-sm text-cyan-100 max-w-xl">
+                Dedicated IP warm-up, custom DKIM/SPF domain verification, and rich HTML newsletter templates with US & Canadian audience segmentation.
+              </p>
             </div>
 
             <button
               onClick={() => setShowCompose(true)}
-              className="zs-btn-primary self-start sm:self-auto bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-200 hover:shadow-cyan-300"
+              className="px-5 py-2.5 rounded-xl bg-white text-sky-700 font-bold text-xs hover:bg-sky-50 shadow-md transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
-              <span>Compose Campaign</span>
+              <span>Compose Email Broadcast</span>
             </button>
           </div>
 
-          {/* KPI Summary Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="zs-card p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Emails Sent</span>
-                <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-600">
-                  <Mail className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-[var(--text-heading)]">54.2K</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">+18.5% this month</p>
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Emails Sent This Month</p>
+              <p className="text-2xl font-black text-[var(--text-heading)] mt-1">25,900</p>
+              <span className="text-[11px] font-bold text-emerald-600">99.1% Delivery Rate</span>
             </div>
-
-            <div className="zs-card p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Delivered</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                  <CheckCheck className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-blue-600">52.5K</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">97.8% delivery rate</p>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Average Open Rate</p>
+              <p className="text-2xl font-black text-sky-600 mt-1">45.8%</p>
+              <span className="text-[11px] text-[var(--text-muted)]">+8.4% above industry avg</span>
             </div>
-
-            <div className="zs-card p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Avg. Open Rate</span>
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <Eye className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-indigo-600">44.8%</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Industry avg: 28%</p>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Click-Through Rate (CTR)</p>
+              <p className="text-2xl font-black text-blue-500 mt-1">16.2%</p>
+              <span className="text-[11px] text-[var(--text-muted)]">4,580 link clicks</span>
             </div>
-
-            <div className="zs-card p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Click-Through</span>
-                <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600">
-                  <MousePointer className="w-4 h-4" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-teal-600">13.2%</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tracked link clicks</p>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Bounce & Spam Rate</p>
+              <p className="text-2xl font-black text-emerald-600 mt-1">0.08%</p>
+              <span className="text-[11px] text-[var(--text-muted)]">Zero domain blacklists</span>
             </div>
           </div>
 
-          {/* Tabs & Search */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="zs-tab-list max-w-xs">
-              {(['campaigns', 'templates'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`zs-tab capitalize ${activeTab === t ? 'active' : ''}`}
-                >
-                  {t === 'campaigns' ? <Send className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-                  <span>{t}</span>
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'campaigns' && (
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                <input
-                  type="text"
-                  placeholder="Filter email campaigns…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="zs-input pl-8 py-1.5 text-xs"
-                />
-              </div>
-            )}
+          {/* Tab Selector */}
+          <div className="flex items-center gap-2 border-b border-[var(--border-color)] pb-2">
+            <button
+              onClick={() => setActiveTab('campaigns')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'campaigns'
+                  ? 'bg-sky-50 text-sky-700 border border-sky-200/80 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              Email Campaigns ({campaigns.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'templates'
+                  ? 'bg-sky-50 text-sky-700 border border-sky-200/80 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              HTML Template Catalog ({templates.length})
+            </button>
           </div>
 
-          {/* Campaigns Table */}
+          {/* Campaigns View */}
           {activeTab === 'campaigns' && (
-            <div className="zs-card overflow-hidden shadow-xs animate-fade-in">
-              <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-[var(--text-heading)]">Email Broadcasts</h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Showing {filteredCampaigns.length} campaigns</p>
+            <div className="zs-card overflow-hidden">
+              <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                <h3 className="text-sm font-bold text-[var(--text-heading)]">Campaign Performance Records</h3>
+                <div className="relative w-64">
+                  <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search campaigns..."
+                    className="zs-input pl-8 py-1.5 text-xs"
+                  />
                 </div>
               </div>
+
               <div className="overflow-x-auto">
-                <table className="zs-table">
-                  <thead>
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] font-bold uppercase tracking-wider border-b border-[var(--border-color)]">
                     <tr>
-                      <th>Campaign</th>
-                      <th>Subject Line</th>
-                      <th>Target Region</th>
-                      <th className="text-right">Sent</th>
-                      <th className="text-right">
-                        <span className="flex items-center gap-1 justify-end"><Eye className="w-3.5 h-3.5 text-cyan-600" /> Opens</span>
-                      </th>
-                      <th className="text-right">
-                        <span className="flex items-center gap-1 justify-end"><MousePointer className="w-3.5 h-3.5 text-indigo-600" /> Clicks</span>
-                      </th>
-                      <th>Status</th>
-                      <th>Date</th>
+                      <th className="py-3 px-4">Campaign Name & Subject</th>
+                      <th className="py-3 px-4">Target Audience</th>
+                      <th className="py-3 px-4 text-right">Sent</th>
+                      <th className="py-3 px-4 text-right">Delivered</th>
+                      <th className="py-3 px-4 text-right">Open Rate</th>
+                      <th className="py-3 px-4 text-right">CTR</th>
+                      <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {filteredCampaigns.map((c) => (
-                      <tr key={c.id}>
-                        <td className="font-semibold text-[var(--text-heading)]">{c.name}</td>
-                        <td className="text-[var(--text-secondary)] font-medium max-w-[220px] truncate">{c.subject}</td>
-                        <td>
-                          <span className="country-badge">
-                            {c.country}
-                          </span>
-                        </td>
-                        <td className="text-right font-mono text-xs">{c.sent.toLocaleString()}</td>
-                        <td className="text-right font-mono text-xs font-semibold text-cyan-600">{c.opened.toLocaleString()}</td>
-                        <td className="text-right font-mono text-xs font-semibold text-indigo-600">{c.clicked.toLocaleString()}</td>
-                        <td><span className={`zs-badge ${STATUS_STYLES[c.status] || 'zs-badge-neutral'}`}>{c.status}</span></td>
-                        <td className="text-xs text-[var(--text-muted)]">{c.date}</td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {campaigns
+                      .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.subject.toLowerCase().includes(search.toLowerCase()))
+                      .map((c) => {
+                        const openRate = ((c.opened / c.delivered) * 100).toFixed(1);
+                        const clickRate = ((c.clicked / c.opened) * 100).toFixed(1);
+
+                        return (
+                          <tr key={c.id} className="hover:bg-[var(--bg-elevated)] transition-colors">
+                            <td className="py-3.5 px-4">
+                              <p className="font-bold text-[var(--text-heading)]">{c.name}</p>
+                              <p className="text-[11px] text-[var(--text-muted)] truncate max-w-sm">{c.subject}</p>
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-[var(--text-secondary)]">{c.audience}</td>
+                            <td className="py-3.5 px-4 text-right font-mono font-bold">{c.sent.toLocaleString()}</td>
+                            <td className="py-3.5 px-4 text-right font-mono text-emerald-600 font-bold">{c.delivered.toLocaleString()}</td>
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-sky-600">{openRate}%</td>
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-blue-500">{clickRate}%</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                c.status === 'completed'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-sky-50 text-sky-700 border border-sky-200'
+                              }`}>
+                                {c.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* Templates tab */}
+          {/* Templates View */}
           {activeTab === 'templates' && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-                  Responsive HTML email layouts optimized for mobile, desktop, and dark mode inboxes.
-                </p>
-                <button
-                  onClick={() => setShowCompose(true)}
-                  className="zs-btn-primary py-2 text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>New Template</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {EMAIL_TEMPLATES.map((t) => (
-                  <div key={t.id} className="zs-card p-5 space-y-3 hover:border-cyan-300 transition-all">
-                    <div className="flex items-start justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center font-bold">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <span className="zs-badge zs-badge-info">{t.preview}</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {templates.map((tpl) => (
+                <div key={tpl.id} className="zs-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[var(--text-heading)]">{tpl.name}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                        {tpl.category}
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-[var(--text-heading)]">{t.name}</h4>
-                      <p className="text-xs text-[var(--text-muted)] mt-1">{t.description}</p>
-                    </div>
-                    <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                      <span className="text-[11px] text-cyan-600 font-semibold">{t.category}</span>
-                      <button
-                        onClick={() => {
-                          setForm(f => ({ ...f, body: `Template: ${t.name}\n\nHi {{name}},\n\nHere is your custom email content...` }));
-                          setShowCompose(true);
-                        }}
-                        className="zs-btn-secondary text-xs py-1 px-2.5"
-                      >
-                        Use Template
-                      </button>
+                    <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2">
+                      Subject: {tpl.subject}
+                    </p>
+                    <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] font-mono text-[11px] text-[var(--text-muted)] line-clamp-4">
+                      {tpl.content}
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <div className="pt-4 border-t border-[var(--border-color)] flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => {
+                        setCampName(tpl.name);
+                        setCampSubject(tpl.subject);
+                        setCampBody(tpl.content);
+                        setShowCompose(true);
+                      }}
+                      className="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Use in Broadcast</span>
+                    </button>
+                    <button
+                      onClick={() => setTemplates(templates.filter((t) => t.id !== tpl.id))}
+                      className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
         </div>
       </main>
 
-      {/* Compose Modal */}
+      {/* Compose Email Modal */}
       {showCompose && (
-        <div className="zs-modal-overlay p-4">
-          <div className="zs-modal p-6 relative max-w-xl">
-            <button
-              onClick={() => setShowCompose(false)}
-              className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-200">
-                <Mail className="w-5 h-5" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
+          <div className="relative w-full max-w-2xl bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border-color)]">
               <div>
-                <h3 className="text-lg font-bold text-[var(--text-heading)]">Compose Email Campaign</h3>
-                <p className="text-xs text-[var(--text-muted)]">SendGrid & AWS SES high-volume delivery</p>
+                <h2 className="text-sm font-bold text-[var(--text-heading)]">Compose Enterprise Email Broadcast</h2>
+                <p className="text-xs text-[var(--text-muted)]">Target US & Canadian contact segments with dynamic merge tags</p>
               </div>
+              <button
+                onClick={() => setShowCompose(false)}
+                className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleComposeSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">Campaign Name</label>
-                <input
-                  className="zs-input"
-                  placeholder="e.g. October Product Launch"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  required
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">From Name</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Campaign Title</label>
                   <input
-                    className="zs-input"
-                    value={form.fromName}
-                    onChange={e => setForm(f => ({ ...f, fromName: e.target.value }))}
+                    type="text"
+                    value={campName}
+                    onChange={(e) => setCampName(e.target.value)}
+                    placeholder="e.g. Summer Special 2026"
+                    className="zs-input text-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">From Email</label>
-                  <input
-                    className="zs-input"
-                    type="email"
-                    value={form.fromEmail}
-                    onChange={e => setForm(f => ({ ...f, fromEmail: e.target.value }))}
-                    required
-                  />
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Target Segment</label>
+                  <select
+                    value={campAudience}
+                    onChange={(e) => setCampAudience(e.target.value)}
+                    className="zs-input text-xs"
+                  >
+                    <option value="🇺🇸 US Verified Customers">🇺🇸 US Verified Customers (Mobile)</option>
+                    <option value="🇨🇦 Canada VIP Members">🇨🇦 Canada VIP Members</option>
+                    <option value="All Registered Leads">All Registered Leads</option>
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">Subject Line</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Subject Line</label>
                 <input
-                  className="zs-input"
-                  placeholder="Your engaging subject line here..."
-                  value={form.subject}
-                  onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                  type="text"
+                  value={campSubject}
+                  onChange={(e) => setCampSubject(e.target.value)}
+                  placeholder="e.g. Exclusive Update: Your Account is Ready"
+                  className="zs-input text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">Target Countries</label>
-                <div className="flex flex-wrap gap-2">
-                  {['🇮🇳 India', '🇺🇸 US', '🇬🇧 UK', '🇦🇺 AU', '🇩🇪 DE', '🌍 Global'].map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        toCountries: f.toCountries.includes(c) ? f.toCountries.filter(x => x !== c) : [...f.toCountries, c]
-                      }))}
-                      className={`country-badge text-xs ${form.toCountries.includes(c) ? 'selected' : ''}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]">HTML Email Body</label>
+                  <span className="text-[10px] text-[var(--text-muted)]">Available tags: {'{{name}}'}, {'{{phone}}'}</span>
+                </div>
+                <textarea
+                  rows={6}
+                  value={campBody}
+                  onChange={(e) => setCampBody(e.target.value)}
+                  placeholder="<h2>Hello {{name}},</h2><p>We are thrilled to welcome you to ZenithTech Cloud...</p>"
+                  className="zs-input text-xs font-mono resize-none"
+                  required
+                />
+              </div>
+
+              {/* Test Email Dispatcher */}
+              <div className="p-3.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--text-secondary)]">Send Instant Test Email</span>
+                  {testResult && (
+                    <span className="text-[11px] font-bold text-emerald-600">Delivered successfully!</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={testEmailTo}
+                    onChange={(e) => setTestEmailTo(e.target.value)}
+                    placeholder="Enter recipient email..."
+                    className="flex-1 zs-input text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendTestEmail}
+                    disabled={sendingTest}
+                    className="px-3 py-2 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 transition-colors cursor-pointer"
+                  >
+                    {sendingTest ? 'Sending...' : 'Test Send'}
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-[var(--text-secondary)] mb-1.5 block">Email Content (HTML or Markdown)</label>
-                <textarea
-                  className="zs-input resize-none"
-                  rows={5}
-                  placeholder="Hi {{name}},\n\nWrite your email body here..."
-                  value={form.body}
-                  onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
                 <button
                   type="button"
                   onClick={() => setShowCompose(false)}
-                  className="zs-btn-secondary"
+                  className="zs-btn-secondary text-xs py-2 px-4"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="zs-btn-primary bg-gradient-to-r from-cyan-600 to-blue-600"
+                  className="zs-btn-primary text-xs py-2 px-5"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Schedule & Send Broadcast</span>
+                  <span>Launch Campaign</span>
                 </button>
               </div>
             </form>

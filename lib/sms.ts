@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { sendTelnyxSms } from './telnyx';
+import { sendTelnyxSms, inspectDestination, RouteInspection } from './telnyx';
 
 export interface SmsDispatchResult {
   success: boolean;
@@ -7,7 +7,8 @@ export interface SmsDispatchResult {
   status?: string;
   error?: string;
   cost?: number;
-  routedVia?: 'telnyx';
+  routedVia?: 'toll_free' | 'local' | 'telnyx';
+  senderPhone?: string;
 }
 
 /**
@@ -35,34 +36,33 @@ export function normalizePhone(rawPhone: string): {
     clean = '+' + clean.slice(3);
   }
 
-  // Accept any valid E.164 number (let Telnyx decide if it can deliver)
   const valid = /^\+[1-9]\d{6,14}$/.test(clean);
   return { normalized: clean, valid };
 }
 
 /**
- * Dispatches an SMS via Telnyx Toll-Free (+18884020949).
- * Attempts delivery to any valid E.164 number — Telnyx will return
- * an error if the destination carrier rejects the international route.
+ * Dispatches an SMS via Telnyx Toll-Free or Local Route.
  */
 export async function dispatchSms(
   toPhone: string,
   body: string,
-  override?: { apiKey?: string; fromPhone?: string }
+  override?: {
+    apiKey?: string;
+    fromPhone?: string;
+    routePreference?: 'toll_free' | 'local' | 'auto';
+  }
 ): Promise<SmsDispatchResult> {
   const { normalized, valid } = normalizePhone(toPhone);
 
   if (!valid) {
     return {
       success: false,
-      error: `Invalid phone number: "${toPhone}". Please use E.164 format (e.g. +14155552671 for US, +918920856958 for India).`,
-      routedVia: 'telnyx',
+      error: `Invalid phone number: "${toPhone}". Please use E.164 format (e.g. +14155552671 for US, +14165550143 for Canada).`,
     };
   }
 
-  const res = await sendTelnyxSms(normalized, body, override);
-  return {
-    ...res,
-    routedVia: 'telnyx',
-  };
+  return await sendTelnyxSms(normalized, body, override);
 }
+
+export { inspectDestination };
+export type { RouteInspection };

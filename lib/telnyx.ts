@@ -6,102 +6,149 @@ interface TelnyxSendResult {
   status?: string;
   error?: string;
   cost?: number;
+  routedVia?: 'toll_free' | 'local';
+  senderPhone?: string;
+}
+
+export interface RouteInspection {
+  destination: string;
+  isUSOrCanada: boolean;
+  isVirtualVoIP: boolean;
+  suggestedRoute: 'toll_free' | 'local';
+  suggestedSender: string;
+  carrierLabel: string;
+}
+
+/**
+ * Inspects a destination phone number to determine carrier classification
+ * and optimal Telnyx route between Toll-Free (+1888) and Local (+1479).
+ */
+export function inspectDestination(toPhone: string): RouteInspection {
+  const clean = toPhone.replace(/[\s()\-.]/g, '');
+  const digits = clean.startsWith('+') ? clean.slice(1) : clean;
+
+  const isUSOrCanada = digits.startsWith('1') && digits.length === 11;
+
+  // Known VoIP virtual prefixes and test numbers (TextNow, Google Voice, Onvoy, Bandwidth)
+  const isVirtualVoIP =
+    digits.includes('2393753770') ||
+    digits.includes('2393751625') ||
+    digits.includes('8046341990') ||
+    digits.startsWith('1239375');
+
+  const TOLL_FREE = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
+  const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
+
+  let suggestedRoute: 'toll_free' | 'local' = 'toll_free';
+  let suggestedSender = TOLL_FREE;
+  let carrierLabel = 'US/Canada Physical Mobile (Toll-Free Route)';
+
+  if (isVirtualVoIP) {
+    suggestedRoute = 'local';
+    suggestedSender = LOCAL_10DLC;
+    carrierLabel = 'US Virtual VoIP (Local 10DLC Route)';
+  } else if (!isUSOrCanada) {
+    suggestedRoute = 'local';
+    suggestedSender = LOCAL_10DLC;
+    carrierLabel = 'Specialized / Non-NANP (Local Route)';
+  } else {
+    // Standard US / Canada physical mobile
+    suggestedRoute = 'toll_free';
+    suggestedSender = TOLL_FREE;
+    carrierLabel = 'US/Canada Mobile Carrier (High-Throughput Toll-Free)';
+  }
+
+  return {
+    destination: clean.startsWith('+') ? clean : '+' + clean,
+    isUSOrCanada,
+    isVirtualVoIP,
+    suggestedRoute,
+    suggestedSender,
+    carrierLabel,
+  };
 }
 
 export async function sendTelnyxSms(
-  toPhone: string, 
+  toPhone: string,
   body: string,
-  override?: { apiKey?: string; fromPhone?: string }
+  override?: {
+    apiKey?: string;
+    fromPhone?: string;
+    routePreference?: 'toll_free' | 'local' | 'auto';
+  }
 ): Promise<TelnyxSendResult> {
   const setting = await prisma.setting.findFirst();
 
-  let apiKey = override?.apiKey?.trim() || '';
-  if (!apiKey || apiKey.includes('xxxx') || !apiKey.startsWith('KEY')) {
-    if (setting?.authToken && setting.authToken.startsWith('KEY') && !setting.authToken.includes('xxxx')) {
-      apiKey = setting.authToken.trim();
-    } else {
-      apiKey = process.env.TELNYX_API_KEY?.trim() || '';
-    }
+  const TOLL_FREE = process.env.TELNYX_PHONE_NUMBER || setting?.tollFreeNumber || '+18884020949';
+  const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || setting?.localNumber || '+14795909259';
+
+  const TOLL_FREE_PROFILE =
+    process.env.TELNYX_MESSAGING_PROFILE_ID ||
+    setting?.tollFreeProfileId ||
+    '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
+
+  const LOCAL_PROFILE =
+    process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID ||
+    setting?.localProfileId ||
+    '4001a0c9-9e1c-444e-ad71-a18b1bdeb2da';
+
+  const TOLL_FREE_KEY =
+    process.env.TELNYX_API_KEY ||
+    setting?.tollFreeApiKey ||
+    setting?.authToken ||
+    '';
+
+  const LOCAL_KEY =
+    process.env.TELNYX_LOCAL_API_KEY ||
+    setting?.localApiKey ||
+    setting?.accountSid ||
+    '';
+
+  // Determine Sender & Route
+  const inspection = inspectDestination(toPhone);
+  let chosenSender = override?.fromPhone?.trim();
+  let chosenRoute: 'toll_free' | 'local' = inspection.suggestedRoute;
+
+  if (override?.routePreference === 'toll_free') {
+    chosenRoute = 'toll_free';
+    chosenSender = TOLL_FREE;
+  } else if (override?.routePreference === 'local') {
+    chosenRoute = 'local';
+    chosenSender = LOCAL_10DLC;
+  } else if (!chosenSender) {
+    chosenRoute = inspection.suggestedRoute;
+    chosenSender = inspection.suggestedSender;
+  } else {
+    chosenRoute = (chosenSender.includes('479') || chosenSender === LOCAL_10DLC) ? 'local' : 'toll_free';
   }
 
-  let fromPhone = override?.fromPhone?.trim() || '';
+  // Select matching API Key and Messaging Profile
+  let activeApiKey = override?.apiKey?.trim() || '';
+  let activeProfile = TOLL_FREE_PROFILE;
 
-  // ── Smart Sender Routing ────────────────────────────────────────────
-  // Rule 1: Toll-Free (+18884020949) = US local cellular mobile numbers ONLY
-  // Rule 2: Local (+14795909259)     = Virtual numbers (VoIP) & Indian numbers (+91) ONLY
-  const cleanDest = toPhone.replace(/[\s()\.\-]/g, '');
-  const isIndiaOrInternational = !cleanDest.startsWith('+1') && !/^[2-9]\d{9}$/.test(cleanDest);
-
-  // Virtual numbers (VoIP: TextNow, Google Voice, Onvoy, Skype, etc.)
-  const isVirtualNumber =
-    cleanDest.includes('2393753770') ||
-    cleanDest.includes('2393751625') ||
-    cleanDest.includes('8046341990') ||
-    cleanDest.startsWith('+1239375') ||
-    cleanDest.startsWith('1239375');
-
-  const TOLL_FREE   = process.env.TELNYX_PHONE_NUMBER || '+18884020949';
-  const LOCAL_10DLC = process.env.TELNYX_LOCAL_NUMBER || '+14795909259';
-  const TOLL_FREE_PROFILE = process.env.TELNYX_MESSAGING_PROFILE_ID || '4001a0fd-9be4-4b36-a8ef-7dfd7462992b';
-  const DEFAULT_LOCAL_PROFILE = '4001a0c9-9e1c-444e-ad71-a18b1bdeb2da';
-  const LOCAL_PROFILE = process.env.TELNYX_LOCAL_MESSAGING_PROFILE_ID || DEFAULT_LOCAL_PROFILE;
-
-  if (!fromPhone) {
-    if (isIndiaOrInternational || isVirtualNumber) {
-      fromPhone = LOCAL_10DLC;
-    } else {
-      fromPhone = setting?.fromPhone?.trim() || TOLL_FREE;
-    }
-  } else if ((isIndiaOrInternational || isVirtualNumber) && (fromPhone.includes('888') || fromPhone.startsWith('+1888'))) {
-    // Toll-Free cannot deliver to India or virtual VoIP numbers: auto-route to Local number
-    fromPhone = LOCAL_10DLC;
-  } else if (!isIndiaOrInternational && !isVirtualNumber && (fromPhone.includes('479') || fromPhone === LOCAL_10DLC) && !override?.fromPhone) {
-    // Standard US local numbers are served best by verified Toll-Free
-    fromPhone = TOLL_FREE;
+  if (chosenRoute === 'local') {
+    activeApiKey = activeApiKey || LOCAL_KEY || TOLL_FREE_KEY;
+    activeProfile = LOCAL_PROFILE;
+  } else {
+    activeApiKey = activeApiKey || TOLL_FREE_KEY;
+    activeProfile = TOLL_FREE_PROFILE;
   }
 
-  // Determine active API key based on selected sender
-  const isUsingLocal = fromPhone.includes('479') || fromPhone === LOCAL_10DLC;
-  let activeApiKey = apiKey;
-  if (isUsingLocal) {
-    const envLocalKey = process.env.TELNYX_LOCAL_API_KEY?.trim();
-    if (envLocalKey && envLocalKey.startsWith('KEY')) {
-      activeApiKey = envLocalKey;
-    } else if (setting?.accountSid && setting.accountSid.startsWith('KEY')) {
-      activeApiKey = setting.accountSid.trim();
-    }
-  }
-
-  if (!activeApiKey) {
-    return {
-      success: false,
-      error: 'Missing Telnyx API Key. Please enter your Telnyx API Key in Settings and click "Save Configuration".',
-    };
-  }
-
-  if (activeApiKey.includes('*')) {
-    return {
-      success: false,
-      error: 'Your Telnyx API Key in Vercel contains masked asterisks (***). Please paste the full unmasked key (e.g. KEY01A188..._vHfY...) into TELNYX_LOCAL_API_KEY on Vercel.',
-    };
-  }
-
-  if (!fromPhone) {
-    return {
-      success: false,
-      error: 'Missing Telnyx sender phone number. Please add your Telnyx number in Settings.',
-    };
-  }
-
-  // Extract pure KEY... token in case user pasted surrounding text or quotes
+  // Sanitize API Key
   const keyMatch = activeApiKey.match(/KEY[0-9A-Za-z_-]+/);
   if (keyMatch) {
     activeApiKey = keyMatch[0];
   }
 
+  if (!activeApiKey) {
+    return {
+      success: false,
+      error: `Missing Telnyx API Key for ${chosenRoute === 'local' ? 'Local' : 'Toll-Free'} route. Please configure your Telnyx keys in Settings.`,
+    };
+  }
+
   try {
-    // Normalize phone numbers: strip spaces, parentheses, dashes
-    const cleanFrom = fromPhone.replace(/[\s()-]/g, '').trim();
+    const cleanFrom = chosenSender.replace(/[\s()-]/g, '').trim();
     let cleanTo = toPhone.replace(/[\s()-]/g, '').trim();
     if (!cleanTo.startsWith('+')) {
       cleanTo = '+' + cleanTo;
@@ -113,24 +160,17 @@ export async function sendTelnyxSms(
       text: body,
     };
 
-    // Only attach profile ID when routing Toll-Free (or if explicit local profile configured).
-    // The local number in Telnyx automatically uses its assigned profile (BULK_SMS_APP).
-    if (!isUsingLocal && TOLL_FREE_PROFILE) {
-      requestBody.messaging_profile_id = TOLL_FREE_PROFILE;
-    } else if (isUsingLocal && LOCAL_PROFILE) {
-      requestBody.messaging_profile_id = LOCAL_PROFILE;
+    if (activeProfile) {
+      requestBody.messaging_profile_id = activeProfile;
     }
 
-    // Ensure webhook URL is always provided for real-time delivery status and receipts
-    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/telnyx`
-      : 'https://www.zenithtech.site/api/webhooks/telnyx';
-    requestBody.webhook_url = webhookUrl;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zenithtech.site';
+    requestBody.webhook_url = `${appUrl}/api/webhooks/telnyx`;
 
     const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${activeApiKey.trim()}`,
+        Authorization: `Bearer ${activeApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -139,44 +179,29 @@ export async function sendTelnyxSms(
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Telnyx API Error:', JSON.stringify(data));
-      
+      console.error('Telnyx Dispatch Error:', JSON.stringify(data));
       const errorCode = String(data?.errors?.[0]?.code || '');
       const rawDetail = data?.errors?.[0]?.detail || data?.errors?.[0]?.title || '';
-      const rawMeta = JSON.stringify(data?.errors?.[0]?.meta || {});
 
       let errDetail = rawDetail || `Telnyx error (HTTP ${response.status})`;
 
       if (errorCode === '10010') {
-        errDetail = `Telnyx authorization failed: Sender ${cleanFrom} belongs to a different Telnyx account/subaccount. Please add TELNYX_LOCAL_API_KEY in your Vercel Environment Variables.`;
+        errDetail = `Authorization error: Sender ${cleanFrom} belongs to Telnyx account 2. Ensure TELNYX_LOCAL_API_KEY is configured.`;
       } else if (errorCode === '40306') {
-        if (cleanTo.startsWith('+91')) {
-          errDetail = 'Destination restriction: Telnyx US Toll-Free (+1888...) cannot deliver to India (+91). Use Local number (+14795909259) with International Outbound enabled on Telnyx.';
-        } else {
-          errDetail = `Telnyx error 40306: Destination cannot be reached via this sender. Please verify the destination is a valid US (+1) or Canadian number.`;
-        }
-      } else if (errorCode === '40009') {
-        errDetail = `Telnyx error 40009: Your Telnyx number is not enabled for SMS or the messaging profile is not attached. Go to portal.telnyx.com → Phone Numbers → your number → Messaging Profile.`;
-      } else if (errorCode === '40002') {
-        errDetail = `Telnyx error 40002: Invalid sender. Make sure your Telnyx number (${fromPhone}) is assigned to a Messaging Profile in Telnyx Portal.`;
-      } else if (errorCode === '10001' || errorCode === '10002') {
-        errDetail = `Telnyx auth error: Invalid API key. Please re-enter your Telnyx API key in Settings.`;
-      } else if (rawMeta && rawMeta !== '{}') {
-        errDetail = `${errDetail} (Code: ${errorCode}, Details: ${rawMeta})`;
+        errDetail = `Destination restriction: The recipient carrier rejected delivery via ${chosenRoute} sender. Try switching to ${chosenRoute === 'toll_free' ? 'Local' : 'Toll-Free'} route.`;
       }
 
       return {
         success: false,
         error: errDetail,
+        routedVia: chosenRoute,
+        senderPhone: chosenSender,
       };
     }
 
     const messageData = data?.data;
     const recipientStatus = messageData?.to?.[0]?.status || 'queued';
     const messageId = messageData?.id;
-
-    // Telnyx returns initial status as 'queued' which delivers within 1-2 seconds.
-    // Map to 'sent' so the message doesn't appear stuck in queue in the UI.
     const resolvedStatus = recipientStatus === 'queued' ? 'sent' : recipientStatus;
 
     return {
@@ -184,89 +209,105 @@ export async function sendTelnyxSms(
       sid: messageId,
       status: resolvedStatus,
       cost: parseFloat(messageData?.cost?.amount || '0.0075'),
+      routedVia: chosenRoute,
+      senderPhone: chosenSender,
     };
   } catch (err: unknown) {
     console.error('Telnyx Network Error:', err);
     return {
       success: false,
-      error: (err as Error)?.message || 'Failed to connect to Telnyx API',
+      error: (err as Error)?.message || 'Failed to dispatch via Telnyx API',
+      routedVia: chosenRoute,
+      senderPhone: chosenSender,
     };
   }
 }
 
-// Poll Telnyx API for inbound messages (fallback when webhook not set up)
+/**
+ * Polls inbound messages from both Telnyx Accounts (Toll-Free and Local)
+ * to ensure two-way synchronization in the inbox.
+ */
 export async function fetchTelnyxInboundMessages() {
   const setting = await prisma.setting.findFirst();
-  let apiKey = (setting?.provider === 'telnyx' && setting?.authToken?.startsWith('KEY') ? setting.authToken : '') ||
-    process.env.TELNYX_API_KEY || '';
 
-  const keyMatch = apiKey.match(/KEY[0-9A-Za-z_-]+/);
-  if (keyMatch) apiKey = keyMatch[0];
+  const tollFreeKey = process.env.TELNYX_API_KEY || setting?.tollFreeApiKey || setting?.authToken || '';
+  const localKey = process.env.TELNYX_LOCAL_API_KEY || setting?.localApiKey || setting?.accountSid || '';
 
-  if (!apiKey) return { count: 0 };
+  const keysToSync = Array.from(new Set([tollFreeKey, localKey])).filter(
+    (k) => Boolean(k) && k.startsWith('KEY')
+  );
 
-  try {
-    const response = await fetch(
-      'https://api.telnyx.com/v2/messages?direction=inbound&page[size]=50',
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+  let totalImported = 0;
 
-    if (!response.ok) {
-      console.error('Telnyx inbound fetch error:', response.status, await response.text());
-      return { count: 0 };
-    }
+  for (const rawKey of keysToSync) {
+    const keyMatch = rawKey.match(/KEY[0-9A-Za-z_-]+/);
+    const apiKey = keyMatch ? keyMatch[0] : rawKey;
 
-    const data = await response.json();
-    const messages = data?.data || [];
-    let imported = 0;
+    try {
+      const response = await fetch(
+        'https://api.telnyx.com/v2/messages?direction=inbound&page[size]=50',
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-    for (const m of messages) {
-      if (m.direction !== 'inbound') continue;
+      if (!response.ok) continue;
 
-      const existing = await prisma.message.findFirst({ where: { providerSid: m.id } });
-      if (existing) continue;
+      const data = await response.json();
+      const messages = data?.data || [];
 
-      const fromPhone = m.from?.phone_number || m.from || '';
-      const toPhone = m.to?.[0]?.phone_number || m.to || '';
-      const content = m.text || '';
+      for (const m of messages) {
+        if (m.direction !== 'inbound') continue;
 
-      if (!fromPhone || !content) continue;
+        const existing = await prisma.message.findFirst({ where: { providerSid: m.id } });
+        if (existing) continue;
 
-      let contact = await prisma.contact.findFirst({ where: { phone: fromPhone } });
-      if (!contact) {
-        contact = await prisma.contact.create({
+        const fromPhone = m.from?.phone_number || m.from || '';
+        const toPhone = m.to?.[0]?.phone_number || m.to || '';
+        const content = m.text || '';
+
+        if (!fromPhone || !content) continue;
+
+        let contact = await prisma.contact.findFirst({ where: { phone: fromPhone } });
+        if (!contact) {
+          const isCA = fromPhone.startsWith('+1416') || fromPhone.startsWith('+1514') || fromPhone.startsWith('+1604');
+          contact = await prisma.contact.create({
+            data: {
+              name: `Contact (${fromPhone.slice(-4)})`,
+              phone: fromPhone,
+              country: isCA ? 'CA' : 'US',
+              status: 'active',
+            },
+          });
+        }
+
+        const senderRoute = toPhone.includes('479') ? 'local' : 'toll_free';
+
+        await prisma.message.create({
           data: {
-            name: `Contact (${fromPhone.slice(-4)})`,
-            phone: fromPhone,
-            status: 'active',
+            contactId: contact.id,
+            channel: 'sms',
+            senderRoute,
+            direction: 'inbound',
+            toPhone,
+            fromPhone,
+            content: content.trim(),
+            status: 'delivered',
+            cost: 0,
+            providerSid: m.id,
+            sentAt: new Date(m.received_at || m.created_at || Date.now()),
           },
         });
+
+        totalImported++;
       }
-
-      await prisma.message.create({
-        data: {
-          contactId: contact.id,
-          direction: 'inbound',
-          toPhone,
-          fromPhone,
-          content: content.trim(),
-          status: 'delivered',
-          cost: 0,
-          providerSid: m.id,
-          sentAt: new Date(m.received_at || m.created_at || Date.now()),
-        },
-      });
-      imported++;
+    } catch (err) {
+      console.error('Telnyx inbound sync error for key:', err);
     }
-
-    return { count: imported };
-  } catch (err) {
-    console.error('Telnyx inbound sync error:', err);
-    return { count: 0 };
   }
+
+  return { count: totalImported };
 }

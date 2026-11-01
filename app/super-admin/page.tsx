@@ -4,84 +4,122 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import QuickSendModal from '@/components/QuickSendModal';
+import { useAuth } from '@/lib/auth-context';
 import {
   Crown, Building2, Users, Globe, CreditCard, Activity, TrendingUp,
   CheckCircle2, XCircle, AlertCircle, MoreHorizontal, Search,
   Send, MessageSquare, Mail, Settings, Eye, Edit2, Trash2, Plus,
-  ArrowUpRight, Shield, Zap, Star, X
+  ArrowUpRight, Shield, Zap, Star, X, Key, Server
 } from 'lucide-react';
 
-const INITIAL_ORGS = [
-  { id: 1, name: 'Zenith Tech Services', slug: 'zenith-tech', plan: 'Enterprise', status: 'active', members: 4, sms: 12400, wa: 8840, email: 42400, contacts: 14200, revenue: 9999, logo: 'ZT', country: '🇮🇳' },
-  { id: 2, name: 'Delhi Retailers Hub', slug: 'delhi-retail', plan: 'Growth', status: 'active', members: 3, sms: 4800, wa: 2100, email: 18000, contacts: 3400, revenue: 4999, logo: 'DR', country: '🇮🇳' },
-  { id: 3, name: 'Bengaluru CloudWorks', slug: 'blr-cloud', plan: 'Enterprise', status: 'active', members: 12, sms: 84000, wa: 42000, email: 380000, contacts: 92000, revenue: 19999, logo: 'BC', country: '🇮🇳' },
-  { id: 4, name: 'Mumbai Logistics Co', slug: 'mumbai-logistics', plan: 'Starter', status: 'trial', members: 2, sms: 1200, wa: 600, email: 8000, contacts: 950, revenue: 0, logo: 'ML', country: '🇮🇳' },
-];
+interface ClientOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  plan: 'Starter' | 'Growth' | 'Enterprise';
+  status: 'active' | 'trial' | 'past_due';
+  members: number;
+  smsCount: number;
+  waCount: number;
+  emailCount: number;
+  mrr: number;
+  country: string;
+}
 
-const PLAN_COLORS: Record<string, string> = {
-  Starter: 'zs-badge-neutral',
-  Growth: 'zs-badge-primary',
-  Enterprise: 'bg-amber-100 text-amber-700 border border-amber-200',
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  active: 'zs-badge-success',
-  trial: 'zs-badge-info',
-  past_due: 'zs-badge-danger',
-  cancelled: 'zs-badge-neutral',
-};
-
-const PLATFORM_STATS = [
-  { label: 'Total Organizations', value: '5', trend: '+2 this week', icon: Building2, color: 'stat-icon-sms' },
-  { label: 'Platform Users', value: '31', trend: '+8 this month', icon: Users, color: 'stat-icon-wa' },
-  { label: 'Monthly Recurring Revenue', value: '$477', trend: '+12.4% MoM', icon: CreditCard, color: 'stat-icon-email' },
-  { label: 'Messages Sent (All Channels)', value: '534K', trend: 'This month', icon: Send, color: 'stat-icon-users' },
+const INITIAL_ORGS: ClientOrganization[] = [
+  {
+    id: 'org_1',
+    name: 'ZenithTech PaaS HQ',
+    slug: 'zenith-hq',
+    plan: 'Enterprise',
+    status: 'active',
+    members: 8,
+    smsCount: 142000,
+    waCount: 42000,
+    emailCount: 380000,
+    mrr: 1499,
+    country: '🇺🇸 US',
+  },
+  {
+    id: 'org_2',
+    name: 'Pacific Coast Logistics',
+    slug: 'pacific-logistics',
+    plan: 'Growth',
+    status: 'active',
+    members: 4,
+    smsCount: 48000,
+    waCount: 12000,
+    emailCount: 85000,
+    mrr: 499,
+    country: '🇺🇸 US',
+  },
+  {
+    id: 'org_3',
+    name: 'Toronto FinTech Group',
+    slug: 'toronto-fintech',
+    plan: 'Enterprise',
+    status: 'active',
+    members: 12,
+    smsCount: 95000,
+    waCount: 28000,
+    emailCount: 240000,
+    mrr: 1299,
+    country: '🇨🇦 Canada',
+  },
+  {
+    id: 'org_4',
+    name: 'Austin SaaS HealthCloud',
+    slug: 'austin-health',
+    plan: 'Starter',
+    status: 'trial',
+    members: 2,
+    smsCount: 5200,
+    waCount: 1400,
+    emailCount: 18000,
+    mrr: 99,
+    country: '🇺🇸 US',
+  },
 ];
 
 export default function SuperAdminPage() {
+  const { role, isSuperAdmin, switchRole } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'organizations' | 'plans' | 'system' | 'logs'>('organizations');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'telnyx' | 'revenue'>('tenants');
   const [search, setSearch] = useState('');
-  const [organizations, setOrganizations] = useState(INITIAL_ORGS);
+  const [orgs, setOrgs] = useState<ClientOrganization[]>(INITIAL_ORGS);
 
-  // New Org Modal
+  // New org modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
-  const [newOrgPlan, setNewOrgPlan] = useState('Growth');
-  const [newOrgCountry, setNewOrgCountry] = useState('🇮🇳 India');
+  const [newOrgPlan, setNewOrgPlan] = useState<'Starter' | 'Growth' | 'Enterprise'>('Growth');
+  const [newOrgCountry, setNewOrgCountry] = useState('🇺🇸 US');
 
   const handleCreateOrg = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOrgName.trim()) return;
 
-    const slug = newOrgName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const newO = {
-      id: Date.now(),
+    const newO: ClientOrganization = {
+      id: 'org_' + Date.now(),
       name: newOrgName.trim(),
-      slug,
+      slug: newOrgName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       plan: newOrgPlan,
       status: 'active',
       members: 1,
-      sms: 0,
-      wa: 0,
-      email: 0,
-      contacts: 0,
-      revenue: newOrgPlan === 'Growth' ? 99 : newOrgPlan === 'Enterprise' ? 349 : 29,
-      logo: newOrgName.slice(0, 2).toUpperCase(),
-      country: newOrgCountry.split(' ')[0] || '🌐',
+      smsCount: 0,
+      waCount: 0,
+      emailCount: 0,
+      mrr: newOrgPlan === 'Enterprise' ? 1299 : newOrgPlan === 'Growth' ? 499 : 99,
+      country: newOrgCountry,
     };
 
-    setOrganizations([newO, ...organizations]);
+    setOrgs([newO, ...orgs]);
     setNewOrgName('');
     setIsAddOpen(false);
   };
 
-  const filtered = organizations.filter(o =>
-    o.name.toLowerCase().includes(search.toLowerCase()) ||
-    o.plan.toLowerCase().includes(search.toLowerCase()) ||
-    o.slug.toLowerCase().includes(search.toLowerCase())
-  );
+  const totalMrr = orgs.reduce((acc, curr) => acc + curr.mrr, 0);
+  const totalSms = orgs.reduce((acc, curr) => acc + curr.smsCount, 0);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -89,297 +127,355 @@ export default function SuperAdminPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
-        orgName="ZenithServices HQ"
-        planName="Enterprise"
-        userRole="SUPER_ADMIN"
-        balance={0}
       />
       <Topbar
-        title="Super Admin"
-        subtitle="Platform-wide multi-tenant management & revenue tracking console"
+        title="Super Admin Platform Console"
+        subtitle="Global Product-as-a-Service multi-tenant management and infrastructure control"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
         <div className="max-w-[1500px] mx-auto space-y-6">
 
-          {/* Hero Header Banner */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 p-6 sm:p-8 text-white shadow-xl shadow-amber-200 animate-fade-in">
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-xs flex-shrink-0">
-                  <Crown className="w-6 h-6 text-white" />
-                </div>
+          {/* RBAC Notice if not Super Admin */}
+          {!isSuperAdmin && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Crown className="w-5 h-5 text-amber-500 flex-shrink-0" />
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Super Admin Console</h1>
-                  <p className="text-amber-100 text-xs sm:text-sm mt-0.5">Platform multi-tenancy, billing subscriptions, and audit control</p>
+                  <p className="text-xs font-bold text-[var(--text-heading)]">Super Admin Role Required for PaaS Infrastructure</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">You are currently logged in as {role}. Switch to SUPER_ADMIN to unlock full multi-tenant controls.</p>
                 </div>
               </div>
+              <button
+                onClick={() => switchRole('SUPER_ADMIN')}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-500 shadow-xs cursor-pointer"
+              >
+                Switch to Super Admin
+              </button>
+            </div>
+          )}
 
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3.5 py-2 text-xs font-semibold shadow-xs">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Master Access Enabled</span>
-                </div>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/10">
+                <Crown className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[var(--text-heading)]">PaaS Master Control Center</h1>
+                <p className="text-xs text-[var(--text-muted)]">Manage client organizations, global Telnyx accounts, and recurring subscription revenue</p>
               </div>
             </div>
-            <div className="absolute right-0 top-0 w-56 h-56 bg-white/10 rounded-full -translate-y-1/4 translate-x-1/4 pointer-events-none" />
+
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="zs-btn-primary text-xs py-2.5 px-4"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Provision New Organization</span>
+            </button>
           </div>
 
-          {/* Platform KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {PLATFORM_STATS.map((s, i) => (
-              <div key={s.label} className="zs-card p-5 animate-fade-in-up">
-                <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center mb-3 shadow-xs`}>
-                  <s.icon className="w-4.5 h-4.5 text-white" style={{ width: '18px', height: '18px' }} />
-                </div>
-                <p className="text-2xl font-bold text-[var(--text-heading)]">{s.value}</p>
-                <p className="text-xs text-[var(--text-muted)] leading-tight">{s.label}</p>
-                <p className="text-[10px] font-semibold text-emerald-600 mt-1 flex items-center gap-0.5">
-                  <ArrowUpRight className="w-3 h-3" /> {s.trend}
-                </p>
-              </div>
-            ))}
+          {/* Platform Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Active PaaS Tenants</p>
+              <p className="text-2xl font-black text-[var(--text-heading)] mt-1">{orgs.length}</p>
+              <span className="text-[11px] font-bold text-emerald-600">100% Operational</span>
+            </div>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Monthly Recurring Revenue</p>
+              <p className="text-2xl font-black text-blue-500 mt-1">${totalMrr.toLocaleString()}</p>
+              <span className="text-[11px] text-[var(--text-muted)]">+18.5% MoM expansion</span>
+            </div>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Global Outbound Dispatches</p>
+              <p className="text-2xl font-black text-[var(--text-heading)] mt-1">{totalSms.toLocaleString()}</p>
+              <span className="text-[11px] font-bold text-sky-600">US & Canada High-Volume</span>
+            </div>
+            <div className="zs-card p-5">
+              <p className="text-xs font-semibold text-[var(--text-muted)]">Carrier Uptime SLA</p>
+              <p className="text-2xl font-black text-emerald-600 mt-1">99.98%</p>
+              <span className="text-[11px] text-[var(--text-muted)]">Dual-Telnyx Redundant</span>
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="zs-tab-list max-w-md">
-            {(['organizations', 'plans', 'system', 'logs'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setActiveTab(t)}
-                className={`zs-tab capitalize text-xs ${activeTab === t ? 'active' : ''}`}
-              >
-                {t}
-              </button>
-            ))}
+          {/* Tab Selector */}
+          <div className="flex items-center gap-2 border-b border-[var(--border-color)] pb-2">
+            <button
+              onClick={() => setActiveTab('tenants')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'tenants'
+                  ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              Client Organizations ({orgs.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('telnyx')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'telnyx'
+                  ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              Global Telnyx Dual Accounts
+            </button>
+            <button
+              onClick={() => setActiveTab('revenue')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'revenue'
+                  ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+              }`}
+            >
+              Subscription Billing
+            </button>
           </div>
 
-          {/* Organizations Tab */}
-          {activeTab === 'organizations' && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
-                <div className="relative max-w-xs w-full">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+          {/* Tenants Tab */}
+          {activeTab === 'tenants' && (
+            <div className="zs-card overflow-hidden">
+              <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                <h3 className="text-sm font-bold text-[var(--text-heading)]">PaaS Tenant Workspaces</h3>
+                <div className="relative w-64">
+                  <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    className="zs-input pl-9.5 text-xs sm:text-sm py-2"
-                    placeholder="Search organizations…"
+                    type="text"
                     value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search organizations..."
+                    className="zs-input pl-8 py-1.5 text-xs"
                   />
                 </div>
-                <button
-                  onClick={() => setIsAddOpen(true)}
-                  className="zs-btn-primary text-xs py-2 self-start sm:self-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Organization</span>
-                </button>
               </div>
 
-              <div className="zs-card overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="zs-table">
-                    <thead>
-                      <tr>
-                        <th>Organization</th>
-                        <th>Subscription Plan</th>
-                        <th>Status</th>
-                        <th className="text-right">Seats</th>
-                        <th className="text-right">SMS Sent</th>
-                        <th className="text-right">WA Messages</th>
-                        <th className="text-right">Emails</th>
-                        <th className="text-right">MRR</th>
-                        <th className="text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((org) => (
-                        <tr key={org.id}>
-                          <td>
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-xs">
-                                {org.logo}
-                              </div>
-                              <div>
-                                <p className="text-xs sm:text-sm font-semibold text-[var(--text-heading)]">
-                                  {org.country} {org.name}
-                                </p>
-                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{org.slug}</p>
-                              </div>
-                            </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] font-bold uppercase tracking-wider border-b border-[var(--border-color)]">
+                    <tr>
+                      <th className="py-3 px-4">Organization Name</th>
+                      <th className="py-3 px-4">Region</th>
+                      <th className="py-3 px-4">Subscription Plan</th>
+                      <th className="py-3 px-4 text-right">Team Seats</th>
+                      <th className="py-3 px-4 text-right">SMS Volume</th>
+                      <th className="py-3 px-4 text-right">MRR ($)</th>
+                      <th className="py-3 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {orgs
+                      .filter((o) => o.name.toLowerCase().includes(search.toLowerCase()))
+                      .map((o) => (
+                        <tr key={o.id} className="hover:bg-[var(--bg-elevated)] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <p className="font-bold text-[var(--text-heading)]">{o.name}</p>
+                            <p className="text-[11px] text-[var(--text-muted)] font-mono">{o.slug}.zenithtech.site</p>
                           </td>
-                          <td><span className={`zs-badge ${PLAN_COLORS[org.plan] || 'zs-badge-neutral'}`}>{org.plan}</span></td>
-                          <td><span className={`zs-badge ${STATUS_STYLES[org.status] || 'zs-badge-neutral'}`}>{org.status}</span></td>
-                          <td className="text-right font-medium text-xs text-[var(--text-secondary)]">{org.members}</td>
-                          <td className="text-right font-mono text-xs text-[var(--text-primary)]">{org.sms.toLocaleString()}</td>
-                          <td className="text-right font-mono text-xs text-[var(--text-primary)]">{org.wa.toLocaleString()}</td>
-                          <td className="text-right font-mono text-xs text-[var(--text-primary)]">{org.email.toLocaleString()}</td>
-                          <td className="text-right font-bold text-xs text-emerald-600">${org.revenue}/mo</td>
-                          <td className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => alert(`Viewing tenant: ${org.name}`)}
-                                className="p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-indigo-600 transition-colors cursor-pointer"
-                                title="View details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => alert(`Editing plan for ${org.name}`)}
-                                className="p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-indigo-600 transition-colors cursor-pointer"
-                                title="Edit tenant"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                          <td className="py-3.5 px-4 font-semibold">{o.country}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                              {o.plan}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-mono font-semibold">{o.members}</td>
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-blue-500">
+                            {o.smsCount.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600">
+                            ${o.mrr}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {o.status}
+                            </span>
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Telnyx Dual Accounts Global Infrastructure */}
+          {activeTab === 'telnyx' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Account 1 */}
+              <div className="zs-card p-6 space-y-4 border border-[var(--border-color)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <h3 className="text-sm font-bold text-[var(--text-heading)]">Telnyx Account 1 • Toll-Free</h3>
+                      <p className="text-[11px] text-[var(--text-muted)]">Verified US & Canadian Cellular Route</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    Connected
+                  </span>
+                </div>
+
+                <div className="space-y-3 pt-2 text-xs">
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Toll-Free Phone Number</p>
+                    <p className="font-mono font-bold text-blue-500">+1 (888) 402-0949</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Messaging Profile ID</p>
+                    <p className="font-mono text-[var(--text-secondary)]">4001a0fd-9be4-4b36-a8ef-7dfd7462992b</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">API Key Authority</p>
+                    <p className="font-mono text-emerald-600">KEY01A1010...BLFOCK81xR8SR (Verified Active)</p>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    Designed for high-throughput broadcast messages directly to physical AT&T, Verizon, T-Mobile, Bell, Rogers, and Telus subscribers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Account 2 */}
+              <div className="zs-card p-6 space-y-4 border-2 border-amber-200/80">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <h3 className="text-sm font-bold text-[var(--text-heading)]">Telnyx Account 2 • Local 10DLC</h3>
+                      <p className="text-[11px] text-[var(--text-muted)]">Virtual VoIP & Local Route</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    Connected
+                  </span>
+                </div>
+
+                <div className="space-y-3 pt-2 text-xs">
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Local 10DLC Phone Number</p>
+                    <p className="font-mono font-bold text-amber-600">+1 (479) 590-9259</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Messaging Profile ID</p>
+                    <p className="font-mono text-[var(--text-secondary)]">4001a0c9-9e1c-444e-ad71-a18b1bdeb2da</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">API Key Authority</p>
+                    <p className="font-mono text-emerald-600">KEY01A188C...KA1FZgzvozxV (Verified Active)</p>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    Dedicated route for VoIP virtual numbers (TextNow, Google Voice, Bandwidth, Onvoy) and local specialized direct messaging.
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Plans Management */}
-          {activeTab === 'plans' && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)]">Manage subscription plans available across the SaaS platform.</p>
-                <button
-                  onClick={() => alert('Plan creator opened')}
-                  className="zs-btn-primary text-xs py-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create Plan</span>
-                </button>
-              </div>
-              {['Starter', 'Growth', 'Enterprise'].map((plan) => (
-                <div key={plan} className="zs-card p-5 flex items-center gap-4 hover:border-indigo-300 transition-all">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs flex-shrink-0 ${
-                    plan === 'Enterprise' ? 'bg-gradient-to-br from-amber-400 to-orange-500' :
-                    plan === 'Growth' ? 'bg-gradient-to-br from-indigo-500 to-violet-600' :
-                    'bg-gradient-to-br from-slate-400 to-slate-500'
-                  }`}>
-                    {plan === 'Enterprise' ? <Crown className="w-5 h-5 text-white" /> : plan === 'Growth' ? <TrendingUp className="w-5 h-5 text-white" /> : <Zap className="w-5 h-5 text-white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[var(--text-heading)]">{plan} Plan</p>
-                    <p className="text-xs text-[var(--text-muted)] truncate">
-                      {plan === 'Starter' ? '$29/mo · 1,000 SMS · 500 WA · 5,000 Email' :
-                       plan === 'Growth' ? '$99/mo · 10,000 SMS · 5,000 WA · 50,000 Email' :
-                       '$349/mo · Unlimited everything'}
-                    </p>
-                  </div>
-                  <span className="zs-badge zs-badge-success flex-shrink-0">Active</span>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => alert(`Configure ${plan} tier`)}
-                      className="zs-btn-secondary text-xs py-1.5 px-3"
-                    >
-                      Edit Tier
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Revenue Tab */}
+          {activeTab === 'revenue' && (
+            <div className="zs-card p-6 space-y-4">
+              <h3 className="text-sm font-bold text-[var(--text-heading)]">Global PaaS Subscription Plans</h3>
+              <p className="text-xs text-[var(--text-muted)]">Pricing tiers and billing thresholds configured across client organizations.</p>
 
-          {/* System & Logs */}
-          {(activeTab === 'system' || activeTab === 'logs') && (
-            <div className="zs-card p-12 text-center animate-fade-in">
-              <Activity className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3 opacity-40" />
-              <h3 className="text-base font-bold text-[var(--text-heading)] capitalize">{activeTab} Monitor</h3>
-              <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto mt-1">
-                {activeTab === 'system'
-                  ? 'Real-time CPU, RAM, PostgreSQL connection pool metrics, and active background worker queues.'
-                  : 'Immutable security audit trail capturing admin actions, plan modifications, and API token usage.'}
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="p-5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-2">
+                  <h4 className="text-sm font-bold text-[var(--text-heading)]">Starter Cloud</h4>
+                  <p className="text-2xl font-black text-blue-500">$99 <span className="text-xs font-medium text-[var(--text-muted)]">/ mo</span></p>
+                  <ul className="text-xs space-y-1 text-[var(--text-secondary)] pt-2">
+                    <li>• 10,000 Included SMS Messages</li>
+                    <li>• Dual Telnyx Routing</li>
+                    <li>• WhatsApp Live Simulator</li>
+                  </ul>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-blue-500/5 border-2 border-blue-500/50 space-y-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">Popular</span>
+                  <h4 className="text-sm font-bold text-[var(--text-heading)]">Growth Omnichannel</h4>
+                  <p className="text-2xl font-black text-blue-500">$499 <span className="text-xs font-medium text-[var(--text-muted)]">/ mo</span></p>
+                  <ul className="text-xs space-y-1 text-[var(--text-secondary)] pt-2">
+                    <li>• 60,000 Included SMS Messages</li>
+                    <li>• WhatsApp Business API Verified</li>
+                    <li>• High-Throughput Toll-Free MPS</li>
+                  </ul>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-2">
+                  <h4 className="text-sm font-bold text-[var(--text-heading)]">Enterprise PaaS</h4>
+                  <p className="text-2xl font-black text-blue-500">$1,299 <span className="text-xs font-medium text-[var(--text-muted)]">/ mo</span></p>
+                  <ul className="text-xs space-y-1 text-[var(--text-secondary)] pt-2">
+                    <li>• Unlimited Multi-Tenant Seats</li>
+                    <li>• Custom DKIM/SPF Email Suite</li>
+                    <li>• 24/7 Priority Carrier Escalation</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
 
         </div>
       </main>
 
-      {/* Add Organization Modal */}
+      {/* New Tenant Modal */}
       {isAddOpen && (
-        <div className="zs-modal-overlay p-4">
-          <div className="zs-modal p-6 relative max-w-md">
-            <button
-              onClick={() => setIsAddOpen(false)}
-              className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
+          <div className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6">
+            <h2 className="text-sm font-bold text-[var(--text-heading)] mb-1">Provision New PaaS Organization</h2>
+            <p className="text-xs text-[var(--text-muted)] mb-4">Set up isolated tenant workspace with dual Telnyx dispatch capabilities</p>
 
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-200">
-                <Building2 className="w-5 h-5" />
-              </div>
+            <form onSubmit={handleCreateOrg} className="space-y-3">
               <div>
-                <h3 className="text-lg font-bold text-[var(--text-heading)]">Provision Organization</h3>
-                <p className="text-xs text-[var(--text-muted)]">Create new tenant workspace</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleCreateOrg} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Company Name</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Company / Organization Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Nexus Global"
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  className="zs-input"
+                  placeholder="e.g. Chicago Retail Cloud"
+                  className="zs-input text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Primary Country</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Operating Market</label>
                 <select
                   value={newOrgCountry}
                   onChange={(e) => setNewOrgCountry(e.target.value)}
-                  className="zs-input cursor-pointer"
+                  className="zs-input text-xs"
                 >
-                  <option value="🇮🇳 India">🇮🇳 India</option>
-                  <option value="🇺🇸 United States">🇺🇸 United States</option>
-                  <option value="🇬🇧 United Kingdom">🇬🇧 United Kingdom</option>
-                  <option value="🇩🇪 Germany">🇩🇪 Germany</option>
-                  <option value="🇦🇺 Australia">🇦🇺 Australia</option>
+                  <option value="🇺🇸 US">🇺🇸 United States</option>
+                  <option value="🇨🇦 Canada">🇨🇦 Canada</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Subscription Plan</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Subscription Tier</label>
                 <select
                   value={newOrgPlan}
-                  onChange={(e) => setNewOrgPlan(e.target.value)}
-                  className="zs-input cursor-pointer"
+                  onChange={(e) => setNewOrgPlan(e.target.value as any)}
+                  className="zs-input text-xs"
                 >
-                  <option value="Starter">Starter ($29/mo)</option>
-                  <option value="Growth">Growth ($99/mo)</option>
-                  <option value="Enterprise">Enterprise ($349/mo)</option>
+                  <option value="Starter">Starter ($99/mo)</option>
+                  <option value="Growth">Growth ($499/mo)</option>
+                  <option value="Enterprise">Enterprise ($1,299/mo)</option>
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="zs-btn-secondary"
+                  className="zs-btn-secondary text-xs py-2 px-4"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="zs-btn-primary bg-gradient-to-r from-amber-500 to-orange-500"
+                  className="zs-btn-primary text-xs py-2 px-5"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Provision Tenant</span>
+                  Provision Tenant
                 </button>
               </div>
             </form>

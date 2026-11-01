@@ -7,7 +7,7 @@ import QuickSendModal from '@/components/QuickSendModal';
 import { getTemplates, createTemplate, deleteTemplate } from '@/lib/db-actions';
 import {
   FileText, Plus, Trash2, Tag, Copy, Sparkles, AlertCircle,
-  X, Check, Search, Filter, MessageSquare, Send
+  X, Check, Search, Filter, MessageSquare, Send, Mail
 } from 'lucide-react';
 
 export default function TemplatesPage() {
@@ -18,11 +18,13 @@ export default function TemplatesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('All');
+  const [selectedChannel, setSelectedChannel] = useState('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Promotions');
+  const [channel, setChannel] = useState('sms');
   const [content, setContent] = useState('');
 
   const loadTemplates = useCallback(async () => {
@@ -45,7 +47,12 @@ export default function TemplatesPage() {
     e.preventDefault();
     if (!name.trim() || !content.trim()) return;
 
-    await createTemplate({ name: name.trim(), category, content: content.trim() });
+    await createTemplate({
+      name: name.trim(),
+      category,
+      channel,
+      content: content.trim(),
+    });
     setName('');
     setContent('');
     setIsAddOpen(false);
@@ -68,13 +75,15 @@ export default function TemplatesPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const categories = ['All', 'Promotions', 'Onboarding', 'Transactional', 'Reminders'];
+  const categories = ['All', 'Marketing', 'Transactional', 'Onboarding', 'Utility'];
 
   const filtered = templates.filter((tpl) => {
     const matchCat = selectedCat === 'All' || tpl.category?.toLowerCase() === selectedCat.toLowerCase();
-    const matchSearch = tpl.name?.toLowerCase().includes(search.toLowerCase()) ||
+    const matchChannel = selectedChannel === 'all' || (tpl.channel || 'sms') === selectedChannel;
+    const matchSearch =
+      tpl.name?.toLowerCase().includes(search.toLowerCase()) ||
       tpl.content?.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat && matchChannel && matchSearch;
   });
 
   const charCount = content.length;
@@ -86,244 +95,210 @@ export default function TemplatesPage() {
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        orgName="ZenithServices"
-        planName="Starter"
-        userRole="SUPER_ADMIN"
-        balance={0}
       />
       <Topbar
         title="Message Templates"
-        subtitle="Dynamic message library with personalization tags for SMS, WhatsApp & Email"
+        subtitle="Dynamic omnichannel template catalog for SMS, WhatsApp & Email"
         dbConnected={true}
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[260px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
         <div className="max-w-[1500px] mx-auto space-y-6">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                <FileText className="w-5 h-5" />
+          {/* Banner */}
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold mb-2">
+                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                <span>Omnichannel Template Assets</span>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">Template Library</h1>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)]">
-                  Reusable templates stored in PostgreSQL for automated broadcast assembly
-                </p>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">Template Catalog</h1>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
+                Standardize outbound communication with pre-approved templates and dynamic personalization tags.
+              </p>
             </div>
 
             <button
               onClick={() => setIsAddOpen(true)}
-              className="zs-btn-primary self-start sm:self-auto"
+              className="zs-btn-primary shadow-md text-xs py-2.5 px-4 cursor-pointer self-start sm:self-auto flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Create Template</span>
             </button>
           </div>
 
-          {/* Search & Category Filter */}
-          <div className="zs-card p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                placeholder="Search templates…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="zs-input pl-9.5 text-xs sm:text-sm py-2"
-              />
-            </div>
-
-            <div className="zs-tab-list overflow-x-auto self-start sm:self-auto">
+          {/* Filter Bar */}
+          <div className="zs-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1 sm:pb-0">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCat(cat)}
-                  className={`zs-tab text-xs ${selectedCat === cat ? 'active' : ''}`}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                    selectedCat === cat
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
+                  }`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
+
+            <div className="relative w-full md:w-64">
+              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search templates..."
+                className="zs-input pl-8 py-1.5 text-xs"
+              />
+            </div>
           </div>
 
           {/* Templates Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="zs-card p-5 h-48 skeleton" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="zs-card p-12 text-center flex flex-col items-center justify-center border-dashed">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 mb-3">
-                <FileText className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-[var(--text-heading)]">No Templates Found</h3>
-              <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1 mb-5">
-                Create reusable message templates with dynamic tags like {'{{name}}'} to speed up your bulk broadcasts.
-              </p>
-              <button
-                onClick={() => setIsAddOpen(true)}
-                className="zs-btn-primary"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create First Template</span>
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((tpl) => {
-                const count = tpl.content.length;
-                const segs = Math.ceil(count / 160) || 1;
-                const isCopied = copiedId === tpl.id;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map((tpl) => {
+              const isWA = tpl.channel === 'whatsapp';
+              const isEmail = tpl.channel === 'email';
 
-                return (
-                  <div
-                    key={tpl.id}
-                    className="zs-card p-5 flex flex-col justify-between space-y-4 hover:border-indigo-300 transition-all shadow-xs hover:shadow-md animate-fade-in"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          {tpl.category}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleCopy(tpl.id, tpl.content)}
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
-                            title="Copy message content"
-                          >
-                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(tpl.id)}
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                            title="Delete template"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <h3 className="text-sm font-bold text-[var(--text-heading)]">{tpl.name}</h3>
-
-                      <div className="p-3 rounded-xl bg-[var(--bg-elevated)] text-xs text-[var(--text-primary)] border border-[var(--border-subtle)] font-mono leading-relaxed whitespace-pre-wrap">
-                        {tpl.content}
-                      </div>
+              return (
+                <div key={tpl.id} className="zs-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[var(--text-heading)]">{tpl.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        isWA
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : isEmail
+                          ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
+                          : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                      }`}>
+                        {tpl.channel?.toUpperCase() || 'SMS'}
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-3 border-t border-[var(--border-subtle)]">
-                      <span className="font-medium">{count} characters</span>
-                      <span className="text-indigo-600 font-semibold">{segs} {segs === 1 ? 'segment' : 'segments'}</span>
+                    <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed font-mono">
+                      {tpl.content}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+
+                  <div className="pt-4 border-t border-[var(--border-color)] flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => handleCopy(tpl.id, tpl.content)}
+                      className="text-xs font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedId === tpl.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedId === tpl.id ? 'Copied!' : 'Copy Content'}</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(tpl.id)}
+                      className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
         </div>
       </main>
 
-      {/* Add Template Modal */}
+      {/* Add Modal */}
       {isAddOpen && (
-        <div className="zs-modal-overlay p-4">
-          <div className="zs-modal p-6 relative max-w-lg">
-            <button
-              onClick={() => setIsAddOpen(false)}
-              className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
+          <div className="w-full max-w-lg bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6">
+            <h2 className="text-sm font-bold text-[var(--text-heading)] mb-1">Create New Template</h2>
+            <p className="text-xs text-[var(--text-muted)] mb-4">Personalize with merge tags for instant dispatch</p>
 
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
-                <FileText className="w-5 h-5" />
-              </div>
+            <form onSubmit={handleCreate} className="space-y-3">
               <div>
-                <h3 className="text-lg font-bold text-[var(--text-heading)]">Create Message Template</h3>
-                <p className="text-xs text-[var(--text-muted)]">Saved in PostgreSQL for fast campaign assembly</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Template Name</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Template Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. VIP Welcome Onboarding"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="zs-input"
+                  placeholder="e.g. order_shipped_sms"
+                  className="zs-input text-xs"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="zs-input cursor-pointer"
-                >
-                  <option value="Promotions">Promotions</option>
-                  <option value="Onboarding">Onboarding</option>
-                  <option value="Transactional">Transactional</option>
-                  <option value="Reminders">Reminders</option>
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Channel</label>
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    className="zs-input text-xs"
+                  >
+                    <option value="sms">SMS (Telnyx)</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Email</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="zs-input text-xs"
+                  >
+                    <option value="Marketing">Marketing</option>
+                    <option value="Transactional">Transactional</option>
+                    <option value="Onboarding">Onboarding</option>
+                    <option value="Utility">Utility</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-semibold text-[var(--text-secondary)]">Message Body</label>
-                  <span className="text-[11px] font-medium text-indigo-600">
-                    {charCount} chars • {segments} segment{segments > 1 ? 's' : ''}
-                  </span>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]">Template Body</label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => insertTag('{{name}}')}
+                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    >
+                      + {'{{name}}'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertTag('{{phone}}')}
+                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    >
+                      + {'{{phone}}'}
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   rows={4}
-                  placeholder="Hi {{name}}, welcome to our platform! Use code {{code}} for 20% off. Reply STOP to opt out."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="zs-input resize-none"
+                  placeholder="Hello {{name}}, your order has shipped!..."
+                  className="zs-input text-xs resize-none"
                   required
                 />
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-[var(--text-secondary)] block mb-1.5">Insert Dynamic Tag:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {['{{name}}', '{{phone}}', '{{code}}', '{{link}}'].map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => insertTag(tag)}
-                      className="px-2.5 py-1 rounded-lg bg-[var(--bg-elevated)] hover:bg-indigo-50 border border-[var(--border-subtle)] hover:border-indigo-200 text-xs font-mono font-medium text-indigo-600 transition-all cursor-pointer"
-                    >
-                      + {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-subtle)]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="zs-btn-secondary"
+                  className="zs-btn-secondary text-xs py-2 px-4"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="zs-btn-primary"
+                  className="zs-btn-primary text-xs py-2 px-5"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Save Template</span>
+                  Save Template
                 </button>
               </div>
             </form>
@@ -334,7 +309,6 @@ export default function TemplatesPage() {
       <QuickSendModal
         isOpen={isQuickSendOpen}
         onClose={() => setIsQuickSendOpen(false)}
-        onSuccess={loadTemplates}
       />
     </div>
   );
