@@ -59,8 +59,8 @@ export async function getDashboardStats() {
       setting,
     ] = await Promise.all([
       prisma.message.count({ where: { direction: 'outbound', isDeleted: false } }),
-      prisma.message.count({ where: { status: 'delivered', isDeleted: false } }),
-      prisma.message.count({ where: { status: 'failed', isDeleted: false } }),
+      prisma.message.count({ where: { status: 'delivered', direction: 'outbound', isDeleted: false } }),
+      prisma.message.count({ where: { status: 'failed', direction: 'outbound', isDeleted: false } }),
       prisma.contact.count(),
       prisma.campaign.count({ where: { status: 'running' } }),
       prisma.message.aggregate({ where: { isDeleted: false }, _sum: { cost: true } }),
@@ -71,7 +71,7 @@ export async function getDashboardStats() {
       }),
       prisma.message.findMany({
         where: { isDeleted: false },
-        take: 150,
+        take: 2000,
         orderBy: { sentAt: 'desc' },
       }),
       prisma.setting.findFirst(),

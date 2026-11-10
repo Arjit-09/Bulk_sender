@@ -16,7 +16,7 @@ const PLANS = [
     name: 'Starter Cloud',
     priceUSD: 29,
     annualPriceUSD: 24,
-    color: 'from-slate-500 to-slate-600',
+    color: 'from-slate-700 to-slate-800',
     highlight: false,
     icon: Zap,
     features: [
@@ -55,7 +55,7 @@ const PLANS = [
     name: 'Enterprise PaaS',
     priceUSD: 349,
     annualPriceUSD: 299,
-    color: 'from-slate-700 to-slate-800',
+    color: 'from-cyan-600 to-blue-700',
     highlight: false,
     icon: Crown,
     features: [
@@ -94,229 +94,188 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
       />
       <Topbar
-        title="Billing & Subscription Plans"
-        subtitle="Manage Product-as-a-Service tiers, message refill balances, and billing invoices"
+        title="Billing & Wallets"
+        subtitle="Manage cloud PaaS subscriptions, carrier wallet balance & billing history"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
+        actions={
+          <button
+            onClick={() => setIsRefillOpen(true)}
+            className="vision-btn-primary text-xs py-2 px-3.5 shadow-md flex items-center gap-1.5"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>Refill Balance</span>
+          </button>
+        }
       />
 
-      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
-        <div className="max-w-[1500px] mx-auto space-y-6">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
 
-          {/* Banner */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold mb-2">
-                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                <span>PaaS Subscription Management</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">Flexible SaaS Pricing Plans</h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
-                Transparent USD pricing with high-throughput US & Canada SMS dispatch, WhatsApp Suite, and Email delivery.
-              </p>
+        {/* Hero Card with Wallet Info */}
+        <div className="vision-hero-card p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative z-10 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 text-xs font-bold mb-1">
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Enterprise PaaS Wallet</span>
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Carrier Credits &amp; Subscriptions
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
+              Maintain an active credit balance for Toll-Free &amp; Local 10DLC messaging routes with automatic refill protection.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 relative z-10 self-stretch sm:self-auto">
+            <div className="p-3.5 rounded-2xl bg-white/[0.08] border border-white/10 text-right flex-1 sm:flex-initial">
+              <p className="text-[10px] font-bold text-slate-300 uppercase">Available Credits</p>
+              <p className="text-2xl font-black font-mono text-cyan-300 mt-0.5">$64.84</p>
             </div>
-
             <button
               onClick={() => setIsRefillOpen(true)}
-              className="zs-btn-primary shadow-md text-xs py-2.5 px-5 self-start sm:self-auto cursor-pointer flex items-center gap-2"
+              className="vision-btn-primary text-xs py-3 px-4 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
               <DollarSign className="w-4 h-4" />
-              <span>Add Account Credits</span>
+              <span>Add Credits</span>
             </button>
           </div>
+        </div>
 
-          {upgradedNotice && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 animate-fade-in-up">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>{upgradedNotice}</span>
-            </div>
-          )}
-
-          {/* Billing Interval Switcher */}
-          <div className="flex justify-center items-center gap-3">
-            <span className={`text-xs font-bold ${!isAnnual ? 'text-blue-500' : 'text-[var(--text-muted)]'}`}>
-              Monthly Billing
-            </span>
-            <button
-              onClick={() => setIsAnnual(!isAnnual)}
-              className="w-12 h-6 rounded-full bg-blue-600 p-0.5 transition-colors cursor-pointer relative"
-            >
-              <div className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`} />
-            </button>
-            <span className={`text-xs font-bold ${isAnnual ? 'text-blue-500' : 'text-[var(--text-muted)]'}`}>
-              Annual Billing <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full ml-1">Save 20%</span>
-            </span>
+        {upgradedNotice && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center gap-2 animate-fade-in-up">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{upgradedNotice}</span>
           </div>
+        )}
 
-          {/* Pricing Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PLANS.map((plan) => {
-              const Icon = plan.icon;
-              const isSelected = currentPlan === plan.id;
-              const price = isAnnual ? plan.annualPriceUSD : plan.priceUSD;
+        {/* Plan Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {PLANS.map((plan) => {
+            const isCurrent = currentPlan === plan.id;
+            const Icon = plan.icon;
+            const price = isAnnual ? plan.annualPriceUSD : plan.priceUSD;
 
-              return (
-                <div
-                  key={plan.id}
-                  className={`zs-card p-6 flex flex-col justify-between relative transition-all ${
-                    plan.highlight
-                      ? 'border-2 border-blue-500 shadow-xl'
-                      : 'border-[var(--border-color)]'
-                  }`}
-                >
-                  {plan.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-extrabold uppercase px-3 py-0.5 rounded-full shadow-xs">
-                      Most Popular
+            return (
+              <div
+                key={plan.id}
+                className={`vision-card p-6 flex flex-col justify-between relative ${
+                  plan.highlight ? 'border-blue-500/50 shadow-[0_0_25px_rgba(0,117,255,0.25)]' : ''
+                }`}
+              >
+                {plan.highlight && (
+                  <span className="absolute top-4 right-4 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 text-white shadow-md">
+                    Most Popular
+                  </span>
+                )}
+
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-600/20 text-cyan-400 flex items-center justify-center">
+                      <Icon className="w-5 h-5" />
                     </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold shadow-xs">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      {isSelected && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                          Current Plan
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-base font-bold text-[var(--text-heading)]">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1 mt-2 mb-4">
-                      <span className="text-3xl font-black text-blue-500">${price}</span>
-                      <span className="text-xs text-[var(--text-muted)] font-semibold">/ month</span>
-                    </div>
-
-                    <div className="space-y-2.5 pt-2 border-t border-[var(--border-subtle)] text-xs">
-                      {plan.features.map((feat, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          <span className="text-[var(--text-secondary)]">{feat}</span>
-                        </div>
-                      ))}
+                    <div>
+                      <h3 className="text-base font-black text-white">{plan.name}</h3>
+                      <p className="text-xs text-slate-400">Enterprise SLA Tier</p>
                     </div>
                   </div>
 
-                  <div className="pt-6">
-                    <button
-                      onClick={() => handleSelectPlan(plan.id, plan.name)}
-                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : plan.highlight
-                          ? 'zs-btn-primary justify-center shadow-md'
-                          : 'zs-btn-secondary justify-center'
-                      }`}
-                    >
-                      {isSelected ? 'Active Plan' : `Upgrade to ${plan.name}`}
-                    </button>
+                  <div className="mt-5 mb-6">
+                    <span className="text-3xl font-black font-mono text-white">${price}</span>
+                    <span className="text-xs text-slate-400"> / month</span>
+                  </div>
+
+                  <div className="space-y-2.5 pt-4 border-t border-white/5">
+                    {plan.features.map((f, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-xs text-slate-300">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span>{f}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Invoices History */}
-          <div className="zs-card overflow-hidden">
-            <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[var(--text-heading)]">Past Invoices & Receipts</h3>
-              <Receipt className="w-4 h-4 text-[var(--text-muted)]" />
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] font-bold uppercase tracking-wider border-b border-[var(--border-color)]">
-                  <tr>
-                    <th className="py-3 px-4">Invoice ID</th>
-                    <th className="py-3 px-4">Billing Period</th>
-                    <th className="py-3 px-4">Plan Name</th>
-                    <th className="py-3 px-4 text-right">Amount (USD)</th>
-                    <th className="py-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)]">
-                  {INVOICE_HISTORY.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-[var(--bg-elevated)] transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-semibold text-blue-500">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-semibold text-[var(--text-secondary)]">{inv.month}</td>
-                      <td className="py-3.5 px-4">{inv.plan}</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold">${inv.amount.toFixed(2)}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {inv.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
+                <div className="pt-6">
+                  <button
+                    onClick={() => handleSelectPlan(plan.id, plan.name)}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isCurrent
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : plan.highlight
+                        ? 'vision-btn-primary shadow-lg'
+                        : 'vision-btn-glass'
+                    }`}
+                  >
+                    {isCurrent ? 'Current Active Tier' : 'Upgrade Plan'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
+
       </main>
 
-      {/* Credit Refill Modal */}
+      {/* Refill Balance Modal */}
       {isRefillOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
-          <div className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6">
-            <h2 className="text-sm font-bold text-[var(--text-heading)] mb-1">Add Account Message Balance</h2>
-            <p className="text-xs text-[var(--text-muted)] mb-4">Recharges Telnyx Toll-Free and Local balance instantly</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="vision-card w-full max-w-sm p-6 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-cyan-400" />
+                <span>Refill PaaS Credits</span>
+              </h3>
+              <button onClick={() => setIsRefillOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
+              <p className="text-xs text-slate-300">
+                Choose credit top-up amount for instant Telnyx carrier replenishment:
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {['25', '50', '100'].map((amt) => (
                   <button
                     key={amt}
+                    type="button"
                     onClick={() => setRefillAmount(amt)}
-                    className={`py-3 rounded-xl text-xs font-bold border transition-all ${
+                    className={`py-2 rounded-xl text-xs font-black font-mono transition-all cursor-pointer ${
                       refillAmount === amt
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                        : 'border-[var(--border-color)] hover:bg-[var(--bg-elevated)]'
+                        ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(0,117,255,0.6)]'
+                        : 'bg-white/5 text-slate-400 hover:text-white'
                     }`}
                   >
-                    ${amt} USD
+                    +${amt}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Custom Amount ($)</label>
-                <input
-                  type="number"
-                  value={refillAmount}
-                  onChange={(e) => setRefillAmount(e.target.value)}
-                  className="zs-input text-xs font-mono"
-                  placeholder="50"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
-                <button
-                  onClick={() => setIsRefillOpen(false)}
-                  className="zs-btn-secondary text-xs py-2 px-4"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setIsRefillOpen(false);
-                    setUpgradedNotice(`Added $${refillAmount} USD to balance!`);
-                    setTimeout(() => setUpgradedNotice(null), 4000);
-                  }}
-                  className="zs-btn-primary text-xs py-2 px-5"
-                >
-                  Confirm Recharge
-                </button>
-              </div>
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsRefillOpen(false)}
+                className="vision-btn-glass text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  alert(`Refilled $${refillAmount} in carrier credits!`);
+                  setIsRefillOpen(false);
+                }}
+                className="vision-btn-primary text-xs py-2 px-4"
+              >
+                Confirm Payment
+              </button>
             </div>
           </div>
         </div>

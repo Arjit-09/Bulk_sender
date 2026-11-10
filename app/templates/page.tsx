@@ -90,7 +90,7 @@ export default function TemplatesPage() {
   const segments = Math.ceil(charCount / 160) || 1;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
         isOpen={isSidebarOpen}
@@ -101,152 +101,167 @@ export default function TemplatesPage() {
         subtitle="Dynamic omnichannel template catalog for SMS, WhatsApp & Email"
         dbConnected={true}
         onMenuToggle={() => setIsSidebarOpen(true)}
+        actions={
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="vision-btn-primary text-xs py-2 px-3.5 shadow-md flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Template</span>
+          </button>
+        }
       />
 
-      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
-        <div className="max-w-[1500px] mx-auto space-y-6">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
 
-          {/* Banner */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold mb-2">
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
-                <span>Omnichannel Template Assets</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">Template Catalog</h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
-                Standardize outbound communication with pre-approved templates and dynamic personalization tags.
-              </p>
-            </div>
+        {/* Hero Banner */}
+        <div className="vision-hero-card p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative z-10 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 text-xs font-bold mb-1">
+              <FileText className="w-3.5 h-3.5" />
+              <span>Omnichannel Template Assets</span>
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Template Catalog &amp; Personalization
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
+              Standardize outbound communication with pre-approved templates and dynamic personalization tags for SMS, WhatsApp &amp; Email.
+            </p>
+          </div>
 
+          <div className="relative z-10">
             <button
               onClick={() => setIsAddOpen(true)}
-              className="zs-btn-primary shadow-md text-xs py-2.5 px-4 cursor-pointer self-start sm:self-auto flex items-center gap-2"
+              className="vision-btn-primary text-xs py-2.5 px-4 w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Template</span>
+              <span>Create New Template</span>
             </button>
           </div>
+        </div>
 
-          {/* Filter Bar */}
-          <div className="zs-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1 sm:pb-0">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCat(cat)}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    selectedCat === cat
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative w-full md:w-64">
-              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search templates..."
-                className="zs-input pl-8 py-1.5 text-xs"
-              />
-            </div>
+        {/* Filter Toolbar */}
+        <div className="vision-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1 sm:pb-0 no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCat(cat)}
+                className={`px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  selectedCat === cat
+                    ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(0,117,255,0.6)]'
+                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
 
-          {/* Templates Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((tpl) => {
-              const isWA = tpl.channel === 'whatsapp';
-              const isEmail = tpl.channel === 'email';
+          <div className="relative w-full md:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search templates..."
+              className="vision-input text-xs"
+              style={{ paddingLeft: '2.5rem' }}
+            />
+          </div>
+        </div>
 
-              return (
-                <div key={tpl.id} className="zs-card p-5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[var(--text-heading)]">{tpl.name}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isWA
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : isEmail
-                          ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
-                          : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-                      }`}>
-                        {tpl.channel?.toUpperCase() || 'SMS'}
+        {/* Templates Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.length === 0 ? (
+            <div className="col-span-full vision-card p-12 text-center text-slate-400">
+              <FileText className="w-10 h-10 mx-auto mb-2 opacity-30 text-blue-400" />
+              <p className="font-bold text-white text-base">No templates found</p>
+              <p className="text-xs mt-1">Click &quot;Create New Template&quot; to author your first reusable copy.</p>
+            </div>
+          ) : (
+            filtered.map((tpl) => (
+              <div key={tpl.id} className="vision-card p-5 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-500/15 text-cyan-300 border border-blue-500/30">
+                        {tpl.category || 'General'}
                       </span>
+                      <h3 className="font-extrabold text-sm text-white mt-1.5">{tpl.name}</h3>
                     </div>
-
-                    <div className="p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed font-mono">
-                      {tpl.content}
-                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
+                      {tpl.channel || 'SMS'}
+                    </span>
                   </div>
 
-                  <div className="pt-4 border-t border-[var(--border-color)] flex items-center justify-between mt-4">
+                  <p className="text-xs text-slate-300 font-mono bg-white/[0.02] p-3 rounded-xl border border-white/5 mt-3 leading-relaxed whitespace-pre-wrap">
+                    {tpl.content}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-white/5 text-xs">
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {tpl.content.length} chars • {Math.ceil(tpl.content.length / 160)} seg
+                  </span>
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleCopy(tpl.id, tpl.content)}
-                      className="text-xs font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-white/10 transition-colors"
+                      title="Copy template"
                     >
-                      {copiedId === tpl.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedId === tpl.id ? 'Copied!' : 'Copy Content'}</span>
+                      {copiedId === tpl.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleDelete(tpl.id)}
-                      className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      title="Delete template"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
+              </div>
+            ))
+          )}
         </div>
+
       </main>
 
-      {/* Add Modal */}
+      {/* Create Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
-          <div className="w-full max-w-lg bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6">
-            <h2 className="text-sm font-bold text-[var(--text-heading)] mb-1">Create New Template</h2>
-            <p className="text-xs text-[var(--text-muted)] mb-4">Personalize with merge tags for instant dispatch</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="vision-card w-full max-w-lg p-6 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-cyan-400" />
+                <span>Create New Template</span>
+              </h3>
+              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleCreate} className="space-y-3">
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Template Name</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Template Name</label>
                 <input
                   type="text"
+                  required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. order_shipped_sms"
-                  className="zs-input text-xs"
-                  required
+                  placeholder="e.g. Account Security OTP Alert"
+                  className="vision-input text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Channel</label>
-                  <select
-                    value={channel}
-                    onChange={(e) => setChannel(e.target.value)}
-                    className="zs-input text-xs"
-                  >
-                    <option value="sms">SMS (Telnyx)</option>
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="email">Email</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Category</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="zs-input text-xs"
+                    className="vision-input text-xs bg-[#0b1437]"
                   >
                     <option value="Marketing">Marketing</option>
                     <option value="Transactional">Transactional</option>
@@ -254,49 +269,62 @@ export default function TemplatesPage() {
                     <option value="Utility">Utility</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Channel</label>
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    className="vision-input text-xs bg-[#0b1437]"
+                  >
+                    <option value="sms">SMS</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Email</option>
+                  </select>
+                </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[var(--text-secondary)]">Template Body</label>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => insertTag('{{name}}')}
-                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                    >
-                      + {'{{name}}'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertTag('{{phone}}')}
-                      className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                    >
-                      + {'{{phone}}'}
-                    </button>
-                  </div>
+                  <label className="text-xs font-bold text-slate-300">Message Content</label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {charCount} / 160 ({segments} seg)
+                  </span>
                 </div>
                 <textarea
                   rows={4}
+                  required
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Hello {{name}}, your order has shipped!..."
-                  className="zs-input text-xs resize-none"
-                  required
+                  placeholder="Hello {name}, your ZenithTech security passcode is {code}."
+                  className="vision-input text-xs font-mono"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-slate-400 font-bold">Tags:</span>
+                {['{name}', '{phone}', '{company}', '{code}'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => insertTag(t)}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-300 hover:bg-white/10"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="zs-btn-secondary text-xs py-2 px-4"
+                  className="vision-btn-glass text-xs py-2 px-4"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="zs-btn-primary text-xs py-2 px-5"
+                  className="vision-btn-primary text-xs py-2 px-4"
                 >
                   Save Template
                 </button>

@@ -94,50 +94,50 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
-      <div className="relative w-full max-w-lg bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in-up">
+      <div className="relative w-full max-w-lg vision-card border border-blue-500/30 shadow-2xl overflow-hidden p-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white flex items-center justify-center shadow-md">
               <Send className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[var(--text-heading)]">Direct Omnichannel Dispatch</h2>
-              <p className="text-[11px] text-[var(--text-muted)]">US & Canada Dual-Route Telnyx + WhatsApp</p>
+              <h2 className="text-sm sm:text-base font-black text-white">Direct Omnichannel Dispatch</h2>
+              <p className="text-[11px] text-slate-400">US &amp; Canada Dual-Route Telnyx + WhatsApp</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <form onSubmit={handleSend} className="p-6 space-y-4">
+        {/* Form Content */}
+        <form onSubmit={handleSend} className="space-y-4">
           {/* Channel Selector */}
-          <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--bg-elevated)] rounded-xl border border-[var(--border-subtle)]">
+          <div className="grid grid-cols-2 gap-2 p-1 bg-white/[0.03] rounded-xl border border-white/5">
             <button
               type="button"
               onClick={() => setChannel('sms')}
-              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 channel === 'sms'
-                  ? 'bg-[var(--bg-card)] text-blue-500 shadow-sm border border-blue-500/30'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Telnyx SMS (US & CA)</span>
+              <span>Telnyx SMS (US &amp; CA)</span>
             </button>
             <button
               type="button"
               onClick={() => setChannel('whatsapp')}
-              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 channel === 'whatsapp'
-                  ? 'bg-[var(--bg-card)] text-emerald-600 shadow-sm border border-emerald-200/50'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -148,45 +148,45 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
           {/* Telnyx Route Preference (if SMS) */}
           {channel === 'sms' && (
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
                 Telnyx Sender Route
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setRoutePreference('auto')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                  className={`p-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
                     routePreference === 'auto'
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
-                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                      ? 'border-blue-500 bg-blue-600/20 text-cyan-300'
+                      : 'border-white/10 text-slate-400 hover:bg-white/5'
                   }`}
                 >
                   <p>Smart Auto</p>
-                  <p className="text-[10px] text-[var(--text-muted)]">AI Carrier Inspect</p>
+                  <p className="text-[10px] text-slate-400 font-normal">AI Carrier Inspect</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRoutePreference('toll_free')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                  className={`p-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
                     routePreference === 'toll_free'
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
-                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                      ? 'border-blue-500 bg-blue-600/20 text-cyan-300'
+                      : 'border-white/10 text-slate-400 hover:bg-white/5'
                   }`}
                 >
                   <p>Toll-Free</p>
-                  <p className="text-[10px] text-[var(--text-muted)]">+1 (888) 402-0949</p>
+                  <p className="text-[10px] text-slate-400 font-mono font-normal">+1 (888)</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRoutePreference('local')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                  className={`p-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
                     routePreference === 'local'
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-500 font-bold'
-                      : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
+                      ? 'border-blue-500 bg-blue-600/20 text-cyan-300'
+                      : 'border-white/10 text-slate-400 hover:bg-white/5'
                   }`}
                 >
                   <p>Local 10DLC</p>
-                  <p className="text-[10px] text-[var(--text-muted)]">+1 (479) 590-9259</p>
+                  <p className="text-[10px] text-slate-400 font-mono font-normal">+1 (479)</p>
                 </button>
               </div>
             </div>
@@ -194,21 +194,21 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
 
           {/* Recipient Phone */}
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-              Recipient Phone Number (US & Canada)
+            <label className="block text-xs font-bold text-slate-300 mb-1">
+              Recipient Phone Number (US &amp; Canada)
             </label>
             <input
               type="text"
               value={phone}
               onChange={(e) => handlePhoneChange(e.target.value)}
-              placeholder="e.g. +14155552671 or 4155552671"
-              className="zs-input text-xs font-mono"
+              placeholder="e.g. +14155552671"
+              className="vision-input text-xs font-mono bg-[#0b1437]"
               required
             />
             {inspection && (
-              <div className="mt-2 p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-400 flex items-center justify-between">
+              <div className="mt-2 p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-cyan-400 flex items-center justify-between">
                 <span className="font-semibold">{inspection.carrierLabel}</span>
-                <span className="font-mono text-[10px] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded border border-blue-500/20 text-[var(--text-primary)]">
+                <span className="font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-blue-500/20 text-white">
                   {inspection.suggestedSender}
                 </span>
               </div>
@@ -218,7 +218,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
           {/* Templates fast select */}
           {templates.length > 0 && (
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+              <label className="block text-xs font-bold text-slate-300 mb-1">
                 Insert Saved Template
               </label>
               <select
@@ -226,7 +226,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
                   const t = templates.find((tpl) => tpl.id === e.target.value);
                   if (t) setMessage(t.content);
                 }}
-                className="zs-input text-xs"
+                className="vision-input text-xs bg-[#0b1437]"
                 defaultValue=""
               >
                 <option value="">-- Choose a template --</option>
@@ -241,9 +241,9 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
 
           {/* Message Content */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">Message Text</label>
-              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-slate-300">Message Text</label>
+              <span className="text-[10px] text-slate-400 font-mono">
                 {charCount} chars • {segments} segment{segments > 1 ? 's' : ''}
               </span>
             </div>
@@ -251,25 +251,25 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type your message here... Use {{name}} for dynamic tags."
-              className="zs-input text-xs resize-none"
+              placeholder="Type your message here..."
+              className="vision-input text-xs bg-[#0b1437] resize-none"
               required
             />
           </div>
 
           {statusMsg && (
-            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{statusMsg}</span>
             </div>
           )}
 
-          {/* Submit */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-color)]">
+          {/* Submit Action */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="zs-btn-secondary text-xs py-2 px-4"
+              className="vision-btn-glass text-xs py-2 px-4"
               disabled={sending}
             >
               Cancel
@@ -277,7 +277,7 @@ export default function QuickSendModal({ isOpen, onClose, onSuccess, onSent }: Q
             <button
               type="submit"
               disabled={sending}
-              className="zs-btn-primary text-xs py-2 px-5"
+              className="vision-btn-primary text-xs py-2 px-5 shadow-lg"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{sending ? 'Dispatching...' : 'Send Message Now'}</span>

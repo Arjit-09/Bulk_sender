@@ -211,7 +211,7 @@ export default function SettingsPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenQuickSend={() => setIsQuickSendOpen(true)} />
       <Topbar
         title="Settings"
@@ -220,7 +220,7 @@ export default function SettingsPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[240px] pt-16 min-h-screen">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
           {/* Page Header */}

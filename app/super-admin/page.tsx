@@ -122,7 +122,7 @@ export default function SuperAdminPage() {
   const totalSms = orgs.reduce((acc, curr) => acc + curr.smsCount, 0);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -135,7 +135,7 @@ export default function SuperAdminPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
         <div className="max-w-[1500px] mx-auto space-y-6">
 
           {/* RBAC Notice if not Super Admin */}
@@ -242,13 +242,14 @@ export default function SuperAdminPage() {
               <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
                 <h3 className="text-sm font-bold text-[var(--text-heading)]">PaaS Tenant Workspaces</h3>
                 <div className="relative w-64">
-                  <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search organizations..."
-                    className="zs-input pl-8 py-1.5 text-xs"
+                    className="zs-input text-xs"
+                    style={{ paddingLeft: '2.5rem' }}
                   />
                 </div>
               </div>

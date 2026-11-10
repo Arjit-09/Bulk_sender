@@ -8,7 +8,7 @@ import { getCampaigns, createAndRunCampaign, deleteCampaign, getTemplates, getCo
 import {
   Send, Plus, Play, Trash2, Users, FileText, CheckCircle2,
   Clock, AlertCircle, Search, Filter, Sparkles, X, ChevronRight,
-  TrendingUp, DollarSign, MessageSquare, Mail, Radio, PhoneCall
+  TrendingUp, DollarSign, MessageSquare, Mail, Phone,
 } from 'lucide-react';
 
 export default function CampaignsPage() {
@@ -22,7 +22,7 @@ export default function CampaignsPage() {
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'running' | 'scheduled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'running' | 'draft'>('all');
   const [channelFilter, setChannelFilter] = useState<'all' | 'sms' | 'whatsapp' | 'email'>('all');
 
   // Form states
@@ -106,7 +106,7 @@ export default function CampaignsPage() {
   const avgDeliveryRate = totalSent > 0 ? ((totalDelivered / totalSent) * 100).toFixed(1) : '99.4';
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -117,367 +117,338 @@ export default function CampaignsPage() {
         subtitle="Schedule and monitor high-volume SMS, WhatsApp & Email broadcasts"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
+        actions={
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="vision-btn-primary text-xs py-2 px-3.5 shadow-md flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create Campaign</span>
+          </button>
+        }
       />
 
-      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
-        <div className="max-w-[1500px] mx-auto space-y-6">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
 
-          {/* Banner */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>PaaS High-Throughput Engine</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">Campaign Operations Console</h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
-                Deploy target audience broadcasts via Telnyx Toll-Free (+1888) for US & Canadian physical mobile, Local 10DLC (+1479) for VoIP/Virtual, or WhatsApp Suite.
-              </p>
-            </div>
+        {/* Hero Card */}
+        <div className="vision-hero-card p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative z-10 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 text-xs font-bold mb-1">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>High-Throughput Campaign Engine</span>
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Campaign Operations Console
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
+              Deploy target audience broadcasts via Telnyx Toll-Free (+1888) for US &amp; Canadian physical mobile, Local 10DLC (+1479) for VoIP/Virtual, or WhatsApp Suite.
+            </p>
+          </div>
 
+          <div className="relative z-10">
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="zs-btn-primary shadow-md text-xs py-2.5 px-5 self-start sm:self-auto cursor-pointer flex items-center gap-2"
+              className="vision-btn-primary text-xs py-2.5 px-4 w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
               <Plus className="w-4 h-4" />
               <span>Create New Campaign</span>
             </button>
           </div>
+        </div>
 
-          {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="zs-card p-5">
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Total Campaigns Dispatched</p>
-              <p className="text-2xl font-black text-[var(--text-heading)] mt-1">{campaigns.length}</p>
-              <span className="text-[11px] font-bold text-blue-500">Omnichannel Active</span>
+        {/* 4 KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="vision-card p-5">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Total Campaigns</p>
+            <p className="text-2xl font-black text-white font-mono mt-1">{campaigns.length}</p>
+            <span className="text-[10px] font-bold text-cyan-400">Omnichannel Active</span>
+          </div>
+          <div className="vision-card p-5">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Broadcasts Delivered</p>
+            <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{totalDelivered.toLocaleString()}</p>
+            <span className="text-[10px] text-slate-400">US &amp; Canada Carriers</span>
+          </div>
+          <div className="vision-card p-5">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Aggregate SLA Rate</p>
+            <p className="text-2xl font-black text-white font-mono mt-1">{avgDeliveryRate}%</p>
+            <span className="text-[10px] font-bold text-emerald-400">Carrier Verified</span>
+          </div>
+          <div className="vision-card p-5">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Audience Segments</p>
+            <p className="text-2xl font-black text-cyan-300 font-mono mt-1">{groups.length || 5}</p>
+            <span className="text-[10px] text-slate-400">Contact Groups Target</span>
+          </div>
+        </div>
+
+        {/* Campaigns Table Card */}
+        <div className="vision-card overflow-hidden">
+          {/* Filter Bar */}
+          <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1 sm:pb-0 no-scrollbar flex-nowrap w-full md:w-auto">
+              {[
+                { key: 'all', label: 'All Channels' },
+                { key: 'sms', label: 'SMS (Telnyx)' },
+                { key: 'whatsapp', label: 'WhatsApp' },
+                { key: 'email', label: 'Email Suite' },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setChannelFilter(f.key as any)}
+                  className={`px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex-shrink-0 text-xs ${
+                    channelFilter === f.key
+                      ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(0,117,255,0.6)]'
+                      : 'bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
-            <div className="zs-card p-5">
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Broadcasts Delivered</p>
-              <p className="text-2xl font-black text-emerald-600 mt-1">{totalDelivered.toLocaleString()}</p>
-              <span className="text-[11px] text-[var(--text-muted)]">US & Canada Carriers</span>
-            </div>
-            <div className="zs-card p-5">
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Aggregate Success Rate</p>
-              <p className="text-2xl font-black text-[var(--text-heading)] mt-1">{avgDeliveryRate}%</p>
-              <span className="text-[11px] font-bold text-emerald-600">Above 99% SLA</span>
-            </div>
-            <div className="zs-card p-5">
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Audience Segments</p>
-              <p className="text-2xl font-black text-blue-500 mt-1">{groups.length || 4}</p>
-              <span className="text-[11px] text-[var(--text-muted)]">Target Contact Groups</span>
+
+            <div className="relative w-full md:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search campaigns..."
+                className="vision-input text-xs"
+                style={{ paddingLeft: '2.75rem' }}
+              />
             </div>
           </div>
 
-          {/* Campaigns Table Card */}
-          <div className="zs-card overflow-hidden">
-            {/* Filter toolbar */}
-            <div className="p-4 border-b border-[var(--border-color)] flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 sm:pb-0">
-                <button
-                  onClick={() => setChannelFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    channelFilter === 'all'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                  }`}
-                >
-                  All Channels
-                </button>
-                <button
-                  onClick={() => setChannelFilter('sms')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    channelFilter === 'sms'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                  }`}
-                >
-                  SMS (Telnyx)
-                </button>
-                <button
-                  onClick={() => setChannelFilter('whatsapp')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    channelFilter === 'whatsapp'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-emerald-50'
-                  }`}
-                >
-                  WhatsApp
-                </button>
-                <button
-                  onClick={() => setChannelFilter('email')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    channelFilter === 'email'
-                      ? 'bg-cyan-600 text-white shadow-xs'
-                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-cyan-50'
-                  }`}
-                >
-                  Email
-                </button>
-              </div>
-
-              <div className="relative w-full md:w-64">
-                <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search campaigns..."
-                  className="zs-input pl-8 py-1.5 text-xs"
-                />
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] font-bold uppercase tracking-wider border-b border-[var(--border-color)]">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[760px]">
+              <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.02]">
+                <tr>
+                  <th className="py-3.5 px-4">Campaign Name</th>
+                  <th className="py-3.5 px-4">Channel &amp; Route</th>
+                  <th className="py-3.5 px-4">Target Audience</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Delivery Stats</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredCampaigns.length === 0 ? (
                   <tr>
-                    <th className="py-3 px-4">Campaign Name</th>
-                    <th className="py-3 px-4">Channel & Route</th>
-                    <th className="py-3 px-4">Target Group</th>
-                    <th className="py-3 px-4 text-right">Sent</th>
-                    <th className="py-3 px-4 text-right">Delivered</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <p className="font-bold text-white">No campaigns found</p>
+                      <p className="text-[11px] mt-0.5">Click &quot;Create New Campaign&quot; to launch your first dispatch.</p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)]">
-                  {filteredCampaigns.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="py-10 text-center text-[var(--text-muted)]">
-                        No campaigns found. Click &quot;Create New Campaign&quot; to launch your first broadcast.
+                ) : (
+                  filteredCampaigns.map((camp) => (
+                    <tr key={camp.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-white">
+                        <p className="text-sm">{camp.name}</p>
+                        <p className="text-[10px] text-slate-400 font-normal">
+                          {new Date(camp.createdAt).toLocaleDateString()}
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/15 text-cyan-300 border border-blue-500/20">
+                          {camp.channel === 'whatsapp' ? 'WhatsApp' : camp.channel === 'email' ? 'Email' : 'SMS'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-medium">
+                        {camp.groupName || 'All Contacts'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            camp.status === 'completed'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : camp.status === 'running'
+                              ? 'bg-cyan-500/15 text-cyan-400'
+                              : 'bg-white/10 text-slate-400'
+                          }`}
+                        >
+                          {camp.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono">
+                        <span className="text-emerald-400 font-bold">{camp.delivCount || 0}</span>
+                        <span className="text-slate-400"> / {camp.sentCount || 0}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => handleDelete(camp.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    filteredCampaigns.map((c) => {
-                      const isWA = c.channel === 'whatsapp';
-                      const isEmail = c.channel === 'email';
-
-                      return (
-                        <tr key={c.id} className="hover:bg-[var(--bg-elevated)] transition-colors">
-                          <td className="py-3.5 px-4">
-                            <p className="font-bold text-[var(--text-heading)]">{c.name}</p>
-                            <p className="text-[10px] text-[var(--text-muted)] font-mono">
-                              Created {new Date(c.createdAt).toLocaleDateString()}
-                            </p>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              isWA
-                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                                : isEmail
-                                ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
-                                : c.senderRoute === 'local'
-                                ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                                : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-                            }`}>
-                              {isWA
-                                ? 'WhatsApp Business'
-                                : isEmail
-                                ? 'Email Suite'
-                                : c.senderRoute === 'local'
-                                ? 'Local 10DLC (+1479)'
-                                : 'Toll-Free (+1888)'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 font-semibold text-[var(--text-secondary)]">{c.groupName}</td>
-                          <td className="py-3.5 px-4 text-right font-mono font-bold">{c.sentCount}</td>
-                          <td className="py-3.5 px-4 text-right font-mono text-emerald-600 font-bold">{c.delivCount}</td>
-                          <td className="py-3.5 px-4">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              c.status === 'completed'
-                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                                : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-                            }`}>
-                              {c.status}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <button
-                              onClick={() => handleDelete(c.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
+          {/* Mobile Cards */}
+          <div className="md:hidden p-3 space-y-3">
+            {filteredCampaigns.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="font-bold text-white text-sm">No campaigns found</p>
+                <p className="text-xs mt-1">Tap &quot;New Campaign&quot; to launch your first dispatch.</p>
+              </div>
+            ) : (
+              filteredCampaigns.map((camp) => {
+                const totalSent = camp.sentCount || 0;
+                const totalDeliv = camp.delivCount || 0;
+                const pct = totalSent > 0 ? Math.round((totalDeliv / totalSent) * 100) : 100;
+                const isWA = camp.channel === 'whatsapp';
+                const isEmail = camp.channel === 'email';
+
+                return (
+                  <div
+                    key={camp.id}
+                    className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all space-y-3"
+                  >
+                    {/* Top row: Badges + Delete */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/15 text-cyan-300 border border-blue-500/20">
+                          {isWA ? 'WhatsApp' : isEmail ? 'Email' : 'SMS'}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            camp.status === 'completed'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : camp.status === 'running'
+                              ? 'bg-cyan-500/15 text-cyan-400'
+                              : 'bg-white/10 text-slate-400'
+                          }`}
+                        >
+                          {camp.status || 'Active'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(camp.id)}
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Delete campaign"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Middle: Title & Date */}
+                    <div>
+                      <h4 className="font-black text-sm text-white leading-snug">{camp.name}</h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Target: <span className="text-slate-200 font-semibold">{camp.groupName || 'All Contacts'}</span> • {new Date(camp.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    {/* Progress Bar & Stats */}
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400 text-[11px]">Carrier Delivery</span>
+                        <span className="font-mono text-cyan-300 font-bold text-xs">
+                          {totalDeliv.toLocaleString()} / {totalSent.toLocaleString()} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </main>
 
       {/* Create Campaign Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
-          <div className="w-full max-w-lg bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)] mb-4">
-              <div>
-                <h2 className="text-sm font-bold text-[var(--text-heading)]">Create & Launch Campaign</h2>
-                <p className="text-xs text-[var(--text-muted)]">Target audience broadcast with route selection</p>
-              </div>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-              >
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="vision-card w-full max-w-lg p-6 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Send className="w-5 h-5 text-cyan-400" />
+                <span>Launch Omnichannel Campaign</span>
+              </h3>
+              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleLaunchCampaign} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Campaign Name</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Campaign Title</label>
                 <input
                   type="text"
+                  required
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="e.g. US Holiday Special Blast"
-                  className="zs-input text-xs"
-                  required
+                  placeholder="e.g. VIP Fall Promo Blast"
+                  className="vision-input text-xs"
                 />
               </div>
 
-              {/* Channel Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Dispatch Channel</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setChannel('sms')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
-                      channel === 'sms'
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                        : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                    }`}
-                  >
-                    SMS (Telnyx)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChannel('whatsapp')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
-                      channel === 'whatsapp'
-                        ? 'border-emerald-500 bg-emerald-50/50 text-emerald-700'
-                        : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                    }`}
-                  >
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChannel('email')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
-                      channel === 'email'
-                        ? 'border-cyan-500 bg-cyan-50/50 text-cyan-700'
-                        : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                    }`}
-                  >
-                    Email
-                  </button>
-                </div>
-              </div>
-
-              {/* SMS Route Selector if SMS */}
-              {channel === 'sms' && (
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Telnyx Sender Route</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSenderRoute('toll_free')}
-                      className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-left ${
-                        senderRoute === 'toll_free'
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                          : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                      }`}
-                    >
-                      <p className="font-bold">Toll-Free (+18884020949)</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">US & CA physical mobile</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSenderRoute('local')}
-                      className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-left ${
-                        senderRoute === 'local'
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                          : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
-                      }`}
-                    >
-                      <p className="font-bold">Local 10DLC (+14795909259)</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">VoIP / Virtual & local numbers</p>
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Channel</label>
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value as any)}
+                    className="vision-input text-xs bg-[#0b1437]"
+                  >
+                    <option value="sms">SMS (Telnyx)</option>
+                    <option value="whatsapp">WhatsApp Business</option>
+                    <option value="email">Email Suite</option>
+                  </select>
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Target Contact Group</label>
-                <select
-                  value={targetGroup}
-                  onChange={(e) => setTargetGroup(e.target.value)}
-                  className="zs-input text-xs"
-                >
-                  <option value="All Contacts">All Contacts</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.name}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Target Group</label>
+                  <select
+                    value={targetGroup}
+                    onChange={(e) => setTargetGroup(e.target.value)}
+                    className="vision-input text-xs bg-[#0b1437]"
+                  >
+                    <option value="All Contacts">All Contacts</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Choose Saved Template (Optional)</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => {
-                    setSelectedTemplateId(e.target.value);
-                    const t = templates.find((tpl) => tpl.id === e.target.value);
-                    if (t) setCustomMsg(t.content);
-                  }}
-                  className="zs-input text-xs"
-                >
-                  <option value="">-- Manual Message --</option>
-                  {templates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name} ({tpl.channel.toUpperCase()})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Broadcast Content</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Message Content</label>
                 <textarea
                   rows={4}
+                  required
                   value={customMsg}
                   onChange={(e) => setCustomMsg(e.target.value)}
-                  placeholder="Hi {{name}}, exclusive update..."
-                  className="zs-input text-xs resize-none"
-                  required
+                  placeholder="Type broadcast message here..."
+                  className="vision-input text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
+              <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="zs-btn-secondary text-xs py-2 px-4"
+                  className="vision-btn-glass text-xs py-2 px-4"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="zs-btn-primary text-xs py-2 px-5"
+                  className="vision-btn-primary text-xs py-2 px-4"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{submitting ? 'Launching...' : 'Launch Campaign'}</span>
+                  {submitting ? 'Dispatching...' : 'Launch Broadcast'}
                 </button>
               </div>
             </form>
@@ -488,6 +459,7 @@ export default function CampaignsPage() {
       <QuickSendModal
         isOpen={isQuickSendOpen}
         onClose={() => setIsQuickSendOpen(false)}
+        onSuccess={loadData}
       />
     </div>
   );

@@ -52,122 +52,134 @@ export default function CountriesPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
       />
       <Topbar
-        title="US & Canada Carrier Coverage"
+        title="US & Canada Coverage Hub"
         subtitle="Tier-1 telecom routing and carrier delivery SLA across North America"
         dbConnected
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[240px] pt-20 px-4 sm:px-6 lg:px-8 pb-12 min-h-screen">
-        <div className="max-w-[1400px] mx-auto space-y-6">
+      <main className="lg:pl-[260px] pl-0 w-full min-h-screen pt-20 sm:pt-24 pb-16 px-3.5 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/10">
-                <Globe className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">
-                  🇺🇸 United States & 🇨🇦 Canada Coverage
-                </h1>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)]">
-                  Dual-Account Carrier Routing • 99.8% Average Deliverability
-                </p>
-              </div>
-            </div>
+        {/* Hero Banner */}
+        <div className="vision-hero-card p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative z-10 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 text-xs font-bold mb-1">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Dual-Account Carrier Routing</span>
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              🇺🇸 United States &amp; 🇨🇦 Canada Coverage
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
+              Tier-1 telecom carrier delivery across all 50 US states and 13 Canadian provinces &amp; territories. 99.8% average verified delivery rate.
+            </p>
+          </div>
 
-            <button onClick={handleSave} className="zs-btn-primary self-start sm:self-auto cursor-pointer">
+          <div className="relative z-10">
+            <button
+              onClick={handleSave}
+              className="vision-btn-primary text-xs py-2.5 px-4 w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+            >
               <CheckCircle2 className="w-4 h-4" />
               <span>Verify Active Routes</span>
             </button>
           </div>
-
-          {savedNotice && (
-            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-500 flex items-center gap-2 animate-fade-in-up">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Carrier routes verified active: All Toll-Free and Local 10DLC pathways healthy!</span>
-            </div>
-          )}
-
-          {/* Dual Gateway Card */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="zs-card p-6 border border-[var(--border-color)] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-5 h-5 text-blue-500" />
-                  <h3 className="text-sm font-bold text-[var(--text-heading)]">Route 1: Toll-Free (+18884020949)</h3>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  Tier-1 Direct
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Dedicated for standard physical cellular carriers (AT&T, Verizon, T-Mobile, Bell, Rogers, Telus). Guarantees high-throughput messaging without consumer carrier blocks.
-              </p>
-            </div>
-
-            <div className="zs-card p-6 border border-[var(--border-color)] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <PhoneCall className="w-5 h-5 text-slate-400" />
-                  <h3 className="text-sm font-bold text-[var(--text-heading)]">Route 2: Local 10DLC (+14795909259)</h3>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  VoIP Route
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Dedicated for US local destinations and virtual VoIP numbers (TextNow, Google Voice, Bandwidth, Onvoy) that require 10DLC local number delivery.
-              </p>
-            </div>
-          </div>
-
-          {/* Coverage Regions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {COVERAGE_REGIONS.map((region) => (
-              <div key={region.code} className="zs-card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{region.flag}</span>
-                    <div>
-                      <h3 className="text-base font-bold text-[var(--text-heading)]">{region.name}</h3>
-                      <p className="text-xs text-[var(--text-muted)] font-mono">{region.dial} • {region.region}</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                    {region.coverage}
-                  </span>
-                </div>
-
-                <div className="space-y-2 pt-2 text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated)]">
-                    <span className="text-[var(--text-muted)]">Carriers</span>
-                    <span className="font-semibold text-[var(--text-heading)]">{region.carrier}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated)]">
-                    <span className="text-[var(--text-muted)]">Route</span>
-                    <span className="font-bold text-blue-500">{region.route}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-elevated)]">
-                    <span className="text-[var(--text-muted)]">Cost per Message</span>
-                    <span className="font-mono font-bold">{region.cost}</span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-[var(--text-muted)] italic pt-1">{region.notes}</p>
-              </div>
-            ))}
-          </div>
-
         </div>
+
+        {savedNotice && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center gap-2 animate-fade-in-up">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>Carrier routes verified active: All Toll-Free and Local 10DLC pathways healthy!</span>
+          </div>
+        )}
+
+        {/* Dual Gateway Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="vision-card p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-cyan-400 flex items-center justify-center">
+                  <Radio className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Route 1: Toll-Free (+18884020949)</h3>
+                  <p className="text-[10px] text-slate-400">Physical Mobile Handshake</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                Tier-1 Direct
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              Dedicated for standard physical cellular carriers (AT&amp;T, Verizon, T-Mobile, Bell, Rogers, Telus). Guarantees high-throughput messaging without consumer carrier blocks.
+            </p>
+          </div>
+
+          <div className="vision-card p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
+                  <PhoneCall className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Route 2: Local 10DLC (+14795909259)</h3>
+                  <p className="text-[10px] text-slate-400">VoIP &amp; Virtual Destination Routing</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                VoIP Route
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              Dedicated for US local destinations and virtual VoIP numbers (TextNow, Google Voice, Bandwidth, Onvoy) that require 10DLC local number delivery.
+            </p>
+          </div>
+        </div>
+
+        {/* Coverage Details for US & Canada */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {COVERAGE_REGIONS.map((region) => (
+            <div key={region.code} className="vision-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{region.flag}</span>
+                  <div>
+                    <h3 className="text-base font-black text-white">{region.name}</h3>
+                    <p className="text-xs text-slate-400 font-mono">{region.dial} • {region.region}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full font-mono">
+                  {region.coverage} SLA
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-2 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="text-slate-400 font-medium">Carriers</span>
+                  <span className="font-bold text-white">{region.carrier}</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="text-slate-400 font-medium">Route</span>
+                  <span className="font-bold text-cyan-400">{region.route}</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                  <span className="text-slate-400 font-medium">Cost per Message</span>
+                  <span className="font-mono font-bold text-emerald-400">{region.cost}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-400 italic pt-1">{region.notes}</p>
+            </div>
+          ))}
+        </div>
+
       </main>
 
       <QuickSendModal

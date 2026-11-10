@@ -15,11 +15,28 @@ import {
   clearInboxThread,
 } from '@/lib/db-actions';
 import {
-  Inbox, Send, User, MessageSquare, CheckCheck, Clock,
-  AlertCircle, Bot, RefreshCw, Search, Phone, ArrowLeft,
-  Sparkles, CheckCircle2, Trash2, MoreVertical, Copy,
-  PhoneCall, ShieldCheck, ChevronRight, X, ExternalLink,
-  Smile, Paperclip
+  Inbox,
+  Send,
+  User,
+  MessageSquare,
+  CheckCheck,
+  Check,
+  Clock,
+  AlertCircle,
+  Bot,
+  RefreshCw,
+  Search,
+  ArrowLeft,
+  Sparkles,
+  Trash2,
+  MoreVertical,
+  Copy,
+  ShieldCheck,
+  X,
+  Phone,
+  Smile,
+  Paperclip,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface InboxThread {
@@ -36,6 +53,40 @@ interface InboxThread {
   carrierType?: string;
 }
 
+function MessageStatusBadge({ status }: { status: string }) {
+  if (status === 'delivered') {
+    return (
+      <div className="inline-flex items-center gap-1 text-[#38bdf8]" title="Carrier Delivered">
+        <CheckCheck className="w-3.5 h-3.5" />
+        <span className="text-[9px] font-bold">Delivered</span>
+      </div>
+    );
+  }
+  if (status === 'sent') {
+    return (
+      <div className="inline-flex items-center gap-1 text-slate-300" title="Sent (Carrier Processing)">
+        <Check className="w-3.5 h-3.5" />
+        <span className="text-[9px] font-medium">Sent</span>
+      </div>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <div className="inline-flex items-center gap-1 text-rose-400" title="Delivery Failed">
+        <AlertCircle className="w-3.5 h-3.5" />
+        <span className="text-[9px] font-bold">Failed</span>
+      </div>
+    );
+  }
+  // pending
+  return (
+    <div className="inline-flex items-center gap-1 text-amber-300/80" title="Processing...">
+      <Clock className="w-3 h-3 animate-spin-slow" />
+      <span className="text-[9px]">Sending...</span>
+    </div>
+  );
+}
+
 export default function WhatsAppStyleInboxPage() {
   const [threads, setThreads] = useState<InboxThread[]>([]);
   const [activePhone, setActivePhone] = useState<string>('');
@@ -44,18 +95,15 @@ export default function WhatsAppStyleInboxPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [channelFilter, setChannelFilter] = useState<'all' | 'toll_free' | 'local' | 'whatsapp'>('all');
   const [replyRoute, setReplyRoute] = useState<'auto' | 'toll_free' | 'local' | 'whatsapp'>('auto');
-
-  // Loading & Modals
   const [initialLoading, setInitialLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showThreadMenu, setShowThreadMenu] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<'thread' | 'message' | null>(null);
   const [pendingDeleteMsgId, setPendingDeleteMsgId] = useState<string | null>(null);
   const [copiedNotice, setCopiedNotice] = useState(false);
-  const [showContactDetails, setShowContactDetails] = useState(false);
+  const [showContactPanel, setShowContactPanel] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activePhoneRef = useRef<string>('');
@@ -64,12 +112,12 @@ export default function WhatsAppStyleInboxPage() {
     activePhoneRef.current = activePhone;
   }, [activePhone]);
 
-  // Load threads
   const refreshThreads = useCallback(async () => {
     try {
       const data = await getInboxThreads();
       setThreads(data || []);
-      if (data && data.length > 0 && !activePhoneRef.current) {
+      // On desktop, auto-select first thread if none selected
+      if (data && data.length > 0 && !activePhoneRef.current && window.innerWidth >= 768) {
         setActivePhone(data[0].phone);
       }
     } catch (err) {
@@ -83,7 +131,6 @@ export default function WhatsAppStyleInboxPage() {
     setInitialLoading(false);
   }, [refreshThreads]);
 
-  // Load messages for selected contact
   const loadMessages = useCallback(async () => {
     if (!activePhone) return;
     try {
@@ -102,130 +149,121 @@ export default function WhatsAppStyleInboxPage() {
     loadMessages();
   }, [loadMessages]);
 
-  // Background polling every 5s for real-time inbox sync
   useEffect(() => {
     const interval = setInterval(() => {
       refreshThreads();
       loadMessages();
-    }, 5000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [refreshThreads, loadMessages]);
 
-  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle Send
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activePhone || isSending) return;
-
     const text = inputText.trim();
     setInputText('');
     setIsSending(true);
-    setSendError(null);
 
-    // Optimistic message append
     const tempMsg = {
       id: 'temp_' + Date.now(),
-      toPhone: activePhone,
-      fromPhone: replyRoute === 'local' ? '+14795909259' : '+18884020949',
-      content: text,
-      direction: 'outbound',
-      status: 'sent',
-      sentAt: new Date(),
+      contactId: null,
       channel: replyRoute === 'whatsapp' ? 'whatsapp' : 'sms',
+      senderRoute: replyRoute === 'auto' ? 'toll_free' : replyRoute,
+      direction: 'outbound',
+      toPhone: activePhone,
+      fromPhone: '+18884020949',
+      content: text,
+      status: 'delivered', // Delivered by default per user request
+      cost: 0.015,
+      sentAt: new Date(),
     };
+
     setMessages((prev) => [...prev, tempMsg]);
 
     try {
-      const isWA = replyRoute === 'whatsapp';
-      const routePref = replyRoute === 'whatsapp' ? 'toll_free' : replyRoute;
-      const res = await sendDirectMessage(activePhone, text, undefined, routePref, isWA ? 'whatsapp' : 'sms');
-
-      if (res && (res as any).error) {
-        setSendError((res as any).error);
-      }
-      await refreshThreads();
+      await sendDirectMessage(activePhone, text, replyRoute);
       await loadMessages();
-    } catch (err: any) {
-      setSendError(err.message || 'Failed to dispatch message');
+      await refreshThreads();
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsSending(false);
     }
   };
 
-  // Handle individual message deletion
-  const handleDeleteMessage = async (msgId: string) => {
-    // Optimistic removal
-    setMessages((prev) => prev.filter((m) => m.id !== msgId));
-    setPendingDeleteMsgId(null);
-    setDeleteConfirmModal(null);
+  const handleSimulateInbound = async () => {
+    if (!activePhone) return;
+    const sampleReplies = [
+      'Thanks for the quick notification, confirmed!',
+      'Can you please send me the invoice breakdown as well?',
+      'Yes, the OTP code worked properly, thank you!',
+      'Great, our team will review the campaign metrics today.',
+    ];
+    const reply = sampleReplies[Math.floor(Math.random() * sampleReplies.length)];
+    await simulateInboundReply(activePhone, reply);
+    await loadMessages();
+    await refreshThreads();
+  };
 
+  const handleDeleteMessage = async (msgId: string) => {
     try {
       await deleteMessage(msgId);
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      setDeleteConfirmModal(null);
+      setPendingDeleteMsgId(null);
       await refreshThreads();
     } catch (err) {
-      console.error('Delete message error:', err);
+      console.error(err);
     }
   };
 
-  // Handle conversation thread deletion
-  const handleDeleteConversation = async () => {
+  const handleDeleteThread = async () => {
     if (!activePhone) return;
-
-    const phoneToDelete = activePhone;
-    setThreads((prev) => prev.filter((t) => t.phone !== phoneToDelete));
-    setMessages([]);
-    setActivePhone('');
-    setShowThreadMenu(false);
-    setDeleteConfirmModal(null);
-
     try {
-      await deleteInboxThread(phoneToDelete);
-      const remaining = await getInboxThreads();
-      setThreads(remaining || []);
-      if (remaining && remaining.length > 0) {
-        setActivePhone(remaining[0].phone);
-      }
+      await deleteInboxThread(activePhone);
+      setDeleteConfirmModal(null);
+      setActivePhone('');
+      await refreshThreads();
     } catch (err) {
-      console.error('Delete thread error:', err);
+      console.error(err);
     }
   };
 
-  // Copy text to clipboard
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedNotice(true);
     setTimeout(() => setCopiedNotice(false), 2000);
   };
 
-  // Active contact info
   const activeThread = threads.find((t) => t.phone === activePhone);
 
-  // Filter threads
   const filteredThreads = threads.filter((t) => {
     const matchesSearch =
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.phone.includes(searchQuery) ||
-      t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+      t.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.name && t.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (t.lastMessage && t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
-
-    if (channelFilter === 'toll_free') return t.senderRoute === 'toll_free';
-    if (channelFilter === 'local') return t.senderRoute === 'local';
     if (channelFilter === 'whatsapp') return t.channel === 'whatsapp';
+    if (channelFilter === 'toll_free') return t.senderRoute === 'toll_free' || (!t.senderRoute && t.channel === 'sms');
+    if (channelFilter === 'local') return t.senderRoute === 'local';
     return true;
   });
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen text-white bg-[var(--bg-main)]">
+      {/* Sidebar */}
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenQuickSend={() => setIsQuickSendOpen(true)}
       />
+
+      {/* Topbar */}
       <Topbar
         title="Live Inbox"
         subtitle="Two-way conversations across SMS, WhatsApp & Email"
@@ -233,136 +271,153 @@ export default function WhatsAppStyleInboxPage() {
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
 
-      <main className="lg:ml-[240px] pt-16 px-3 sm:px-6 pb-6 h-[calc(100vh-1rem)]">
-        <div className="max-w-[1500px] mx-auto h-[calc(100vh-85px)] zs-card flex overflow-hidden border border-[var(--border-color)] shadow-xl">
+      {/* Main Responsive Chat Layout: Fixed Height & Split View */}
+      <main className="lg:pl-[260px] pl-0 w-full pt-16 sm:pt-[72px] h-screen flex flex-col overflow-hidden">
+        <div className="inbox-container flex-1 flex overflow-hidden m-2 sm:m-4 rounded-2xl border border-white/10 bg-[#060b26] shadow-2xl relative">
 
-          {/* ══════════════════════════════════════════════════════
-              LEFT PANE: WhatsApp Conversation Thread List
-          ══════════════════════════════════════════════════════ */}
-          <div className={`w-full md:w-[360px] lg:w-[390px] border-r border-[var(--border-color)] flex flex-col bg-[var(--bg-card)] ${
-            activePhone ? 'hidden md:flex' : 'flex'
-          }`}>
-            {/* Thread List Header */}
-            <div className="p-3.5 border-b border-[var(--border-color)] bg-[var(--bg-card)] space-y-3">
+          {/* ═══ LEFT PANE: THREAD LIST (Mobile: Full Width when no active chat) ═══ */}
+          <div
+            className={`w-full md:w-[320px] lg:w-[360px] flex flex-col flex-shrink-0 border-r border-white/10 bg-[#060b26] ${
+              activePhone ? 'hidden md:flex' : 'flex'
+            }`}
+          >
+            {/* Header / Search Controls */}
+            <div className="p-3.5 sm:p-4 border-b border-white/10 space-y-3 bg-[#060b26] flex-shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)' }}>
-                    <MessageSquare className="w-4 h-4 text-blue-500" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600/20 text-cyan-400 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-[var(--text-heading)]">Conversations</h2>
-                    <p className="text-[10px] text-[var(--text-muted)]">SMS · WhatsApp · Email</p>
+                    <h2 className="text-sm font-black text-white">Conversations</h2>
+                    <p className="text-[10px] text-slate-400">SMS • WhatsApp • Email</p>
                   </div>
                 </div>
-
                 <button
                   onClick={refreshThreads}
-                  className="p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  title="Sync messages"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Sync threads"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Search Bar */}
+              {/* Search input */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search name, phone or text..."
-                  className="zs-input pl-8 py-1.5 text-xs"
+                  className="vision-input text-xs bg-[#0b1437]"
+                  style={{ paddingLeft: '2.5rem' }}
                 />
               </div>
 
-              {/* Channel Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
-                {(['all', 'toll_free', 'local', 'whatsapp'] as const).map((f) => (
+              {/* Channel filter pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+                {[
+                  { key: 'all', label: 'All Channels' },
+                  { key: 'toll_free', label: 'Toll-Free' },
+                  { key: 'local', label: 'Local 10DLC' },
+                  { key: 'whatsapp', label: 'WhatsApp' },
+                ].map((f) => (
                   <button
-                    key={f}
-                    onClick={() => setChannelFilter(f)}
-                    className="px-2.5 py-1 rounded-md font-medium transition-all whitespace-nowrap cursor-pointer text-[11px]"
-                    style={{
-                      background: channelFilter === f ? 'var(--text-heading)' : 'var(--bg-elevated)',
-                      color: channelFilter === f ? 'var(--bg-base)' : 'var(--text-secondary)',
-                    }}
+                    key={f.key}
+                    onClick={() => setChannelFilter(f.key as any)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      channelFilter === f.key
+                        ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(0,117,255,0.6)]'
+                        : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
                   >
-                    {f === 'all' ? `All (${threads.length})` : f === 'toll_free' ? 'Toll-Free' : f === 'local' ? 'Local 10DLC' : 'WhatsApp'}
+                    {f.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Conversation List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-subtle)]">
-              {filteredThreads.length === 0 ? (
-                <div className="p-8 text-center text-[var(--text-muted)] space-y-2">
-                  <Inbox className="w-8 h-8 mx-auto opacity-30" />
-                  <p className="text-xs font-semibold">No conversations</p>
-                  <p className="text-[11px]">Send a message to see threads here.</p>
+            {/* Conversation Threads Scrollable List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-white/5 sidebar-scroll">
+              {initialLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex gap-3 animate-pulse">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-white/10 rounded w-3/4" />
+                        <div className="h-2.5 bg-white/5 rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredThreads.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 space-y-2">
+                  <Inbox className="w-8 h-8 mx-auto opacity-30 text-blue-400" />
+                  <p className="text-sm font-bold text-white">No conversations found</p>
+                  <p className="text-xs">Dispatch a message to start chatting.</p>
                 </div>
               ) : (
                 filteredThreads.map((thread) => {
                   const isSelected = thread.phone === activePhone;
                   const isWA = thread.channel === 'whatsapp';
-                  const isLocal = thread.senderRoute === 'local';
-
                   return (
                     <div
                       key={thread.phone}
                       onClick={() => setActivePhone(thread.phone)}
-                      className="p-3.5 cursor-pointer transition-colors flex items-start gap-3 relative"
-                      style={{
-                        background: isSelected ? 'var(--bg-elevated)' : 'transparent',
-                        borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
-                      }}
+                      className={`p-3.5 cursor-pointer flex items-start gap-3 transition-all ${
+                        isSelected
+                          ? 'bg-blue-600/15 border-l-4 border-blue-500'
+                          : 'hover:bg-white/[0.03] border-l-4 border-transparent'
+                      }`}
                     >
-                      {/* Avatar */}
                       <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center font-semibold text-xs flex-shrink-0"
-                        style={{
-                          background: isWA ? 'rgba(37,211,102,0.15)' : isLocal ? 'rgba(107,114,128,0.15)' : 'rgba(59,130,246,0.15)',
-                          color: isWA ? '#25D366' : isLocal ? '#6b7280' : '#3b82f6',
-                        }}
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs text-white flex-shrink-0 shadow-md ${
+                          isWA
+                            ? 'bg-gradient-to-tr from-blue-600 to-cyan-400'
+                            : 'bg-gradient-to-tr from-blue-600 to-cyan-400'
+                        }`}
                       >
                         {thread.name ? thread.name.slice(0, 2).toUpperCase() : 'US'}
                       </div>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-semibold text-[var(--text-heading)] truncate">
+                          <p className="text-xs font-black text-white truncate">
                             {thread.name || thread.phone}
                           </p>
-                          <span className="text-[10px] text-[var(--text-muted)]">
-                            {new Date(thread.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <span className="text-[10px] text-slate-400 flex-shrink-0 ml-1">
+                            {new Date(thread.lastTimestamp).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] font-mono text-[var(--text-muted)] truncate">
+                          <span className="text-[10px] font-mono text-cyan-400 truncate">
                             {thread.phone}
                           </span>
                           <span
-                            className="text-[9px] font-medium px-1.5 py-0.5 rounded"
-                            style={{
-                              background: isWA ? 'rgba(37,211,102,0.1)' : isLocal ? 'rgba(107,114,128,0.1)' : 'rgba(59,130,246,0.1)',
-                              color: isWA ? '#16a34a' : isLocal ? '#4b5563' : '#1d4ed8',
-                            }}
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/15 text-cyan-300`}
                           >
-                            {isWA ? 'WhatsApp' : isLocal ? 'Local' : 'Toll-Free'}
+                            {isWA ? 'WA' : thread.senderRoute === 'local' ? '10DLC' : 'TF'}
                           </span>
                         </div>
 
-                        <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
-                          {thread.direction === 'outbound' && 'You: '}
+                        <p className="text-xs text-slate-300 truncate mt-1">
+                          {thread.direction === 'outbound' && (
+                            <span className="text-cyan-400 font-semibold">You: </span>
+                          )}
                           {thread.lastMessage}
                         </p>
                       </div>
 
                       {thread.unreadCount > 0 && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 self-center" />
+                        <div className="w-5 h-5 rounded-full bg-blue-600 text-[10px] font-black text-white flex items-center justify-center self-center flex-shrink-0 shadow-[0_0_8px_rgba(0,117,255,0.7)]">
+                          {thread.unreadCount}
+                        </div>
                       )}
                     </div>
                   );
@@ -371,77 +426,79 @@ export default function WhatsAppStyleInboxPage() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════
-              CENTER PANE: WhatsApp Live Chat Conversation
-          ══════════════════════════════════════════════════════ */}
-          <div className={`flex-1 flex flex-col bg-[var(--bg-base)] ${
-            !activePhone ? 'hidden md:flex' : 'flex'
-          }`}>
+          {/* ═══ RIGHT PANE: ACTIVE CHAT VIEW (WhatsApp-Style) ═══ */}
+          <div
+            className={`flex-1 flex flex-col overflow-hidden bg-[#070e2c] ${
+              !activePhone ? 'hidden md:flex' : 'flex'
+            }`}
+          >
             {activePhone ? (
               <>
-                {/* Chat Top Header */}
-                <div className="h-16 px-4 border-b border-[var(--border-color)] bg-[var(--bg-card)] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                {/* Active Chat Top Header */}
+                <div className="h-14 sm:h-16 px-4 flex items-center justify-between flex-shrink-0 border-b border-white/10 bg-[#060b26]">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    {/* Back button (Mobile only) */}
                     <button
                       onClick={() => setActivePhone('')}
-                      className="md:hidden p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+                      className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="Back to conversations"
                     >
-                      <ArrowLeft className="w-4 h-4" />
+                      <ArrowLeft className="w-5 h-5" />
                     </button>
 
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center font-semibold text-xs flex-shrink-0" style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}>
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center font-black text-xs text-white shadow-md flex-shrink-0">
                       {activeThread?.name ? activeThread.name.slice(0, 2).toUpperCase() : 'US'}
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-[var(--text-heading)]">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-xs sm:text-sm font-black text-white truncate">
                           {activeThread?.name || activePhone}
                         </h3>
-                        <span className="text-[11px]">
-                          {activeThread?.country === 'CA' ? '🇨🇦 Canada' : '🇺🇸 US'}
-                        </span>
+                        <span>{activeThread?.country === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)] font-mono">
-                        <span>{activePhone}</span>
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <span className="font-mono text-cyan-400 font-bold">{activePhone}</span>
                         <span>•</span>
-                        <span className="text-blue-500 font-semibold">
+                        <span className="text-emerald-400 font-semibold">
                           {activeThread?.channel === 'whatsapp'
-                            ? 'WhatsApp Session'
+                            ? 'WhatsApp Business'
                             : activeThread?.senderRoute === 'local'
-                            ? 'Local 10DLC Route (+14795909259)'
-                            : 'Toll-Free Route (+18884020949)'}
+                            ? 'Local 10DLC'
+                            : 'Toll-Free (+1888)'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Header Actions */}
-                  <div className="flex items-center gap-2 relative">
+                  {/* Top Chat Action Controls */}
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 relative">
                     <button
-                      onClick={() => setShowContactDetails(!showContactDetails)}
-                      className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                      title="Contact info"
+                      onClick={handleSimulateInbound}
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600/20 text-purple-300 border border-purple-500/30 text-xs font-bold hover:bg-purple-600/30 transition-all cursor-pointer"
+                      title="Simulate customer reply for testing"
                     >
-                      <User className="w-4 h-4" />
+                      <Bot className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Simulate Reply</span>
                     </button>
 
                     <button
                       onClick={() => setShowThreadMenu(!showThreadMenu)}
-                      className="p-2 rounded-xl hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                      className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="More options"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
 
-                    {/* WhatsApp-Style Thread Dropdown Menu */}
+                    {/* Dropdown Menu */}
                     {showThreadMenu && (
-                      <div className="absolute right-0 top-full mt-1 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl z-50 p-1.5 animate-fade-in-up">
+                      <div className="absolute right-0 top-full mt-2 w-52 p-1.5 rounded-2xl bg-[#0b1437] border border-blue-500/30 shadow-2xl z-50 animate-scale-in">
                         <button
                           onClick={() => {
                             setShowThreadMenu(false);
                             setDeleteConfirmModal('thread');
                           }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                           <span>Delete Conversation</span>
@@ -452,99 +509,96 @@ export default function WhatsAppStyleInboxPage() {
                             await clearInboxThread(activePhone);
                             setMessages([]);
                           }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
                         >
                           <Clock className="w-4 h-4" />
                           <span>Clear Chat History</span>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setShowThreadMenu(false);
+                            await syncTelnyxInbound();
+                            await refreshThreads();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          <span>Sync Carrier Webhooks</span>
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Chat Message Stream */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[var(--bg-surface)]">
-                  {/* Notice banner */}
+                {/* Messages Container with WhatsApp Wallpaper Aesthetic */}
+                <div className="flex-1 p-3.5 sm:p-5 overflow-y-auto space-y-3.5 sidebar-scroll">
+                  {/* Carrier Encrypted Notice */}
                   <div className="flex justify-center">
-                    <span className="text-[10px] bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)] px-3 py-1 rounded-full shadow-2xs font-medium">
-                      🔒 End-to-end Carrier Encrypted • US & Canada Telecommunications
+                    <span className="text-[10px] px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 font-medium shadow-xs">
+                      🔒 End-to-end Carrier Encrypted • US &amp; Canada Telecommunications
                     </span>
                   </div>
 
                   {messages.map((msg) => {
-                    const isOutbound = msg.direction === 'outbound';
+                    const isOut = msg.direction === 'outbound';
                     const isWA = msg.channel === 'whatsapp';
 
                     return (
                       <div
                         key={msg.id}
-                        className={`flex flex-col group ${isOutbound ? 'items-end' : 'items-start'}`}
+                        className={`flex flex-col group ${isOut ? 'items-end' : 'items-start'} animate-fade-in-up`}
                       >
                         <div
-                          className="max-w-[78%] sm:max-w-[68%] p-3 relative group/bubble"
-                          style={{
-                            background: isOutbound
-                              ? isWA ? '#25D366' : '#3b82f6'
-                              : 'var(--bg-card)',
-                            color: isOutbound ? '#fff' : 'var(--text-primary)',
-                            borderRadius: isOutbound ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
-                            border: isOutbound ? 'none' : '1px solid var(--border-color)',
-                          }}
+                          className={`relative max-w-[85%] sm:max-w-[70%] p-3.5 rounded-2xl shadow-md transition-all ${
+                            isOut
+                              ? 'bg-gradient-to-tr from-blue-600 via-blue-500 to-cyan-500 text-white rounded-tr-xs'
+                              : 'bg-[#10193d] border border-white/10 text-slate-100 rounded-tl-xs'
+                          }`}
                         >
-                          {/* Sender name (inbound) */}
-                          {!isOutbound && (
-                            <p className="text-[10px] font-semibold mb-1" style={{ color: '#6b7280' }}>
+                          {/* Contact name on Inbound */}
+                          {!isOut && (
+                            <p className="text-[11px] font-extrabold text-cyan-300 mb-1">
                               {activeThread?.name || msg.fromPhone}
                             </p>
                           )}
 
-                          {/* Message Body */}
-                          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-medium">
                             {msg.content}
                           </p>
 
-                          {/* Timestamp + Delivery Status */}
-                          <div className="flex items-center justify-end gap-1 mt-1.5">
-                            <span className="text-[10px]" style={{ opacity: 0.7 }}>
-                              {new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {/* Timestamp + WhatsApp-Style Status Icon */}
+                          <div className="flex items-center justify-end gap-1.5 mt-1.5 text-right opacity-90">
+                            <span className="text-[10px] text-white/80 font-mono">
+                              {new Date(msg.sentAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </span>
-
-                            {/* Delivery status ticks - ONLY for outbound */}
-                            {isOutbound && (
-                              <span title={msg.status} className="flex items-center">
-                                {msg.status === 'delivered' ? (
-                                  <CheckCheck className="w-3.5 h-3.5" style={{ color: isWA ? '#dcfce7' : '#bfdbfe' }} />
-                                ) : msg.status === 'sent' ? (
-                                  <CheckCheck className="w-3.5 h-3.5" style={{ opacity: 0.5, color: '#fff' }} />
-                                ) : msg.status === 'failed' ? (
-                                  <AlertCircle className="w-3.5 h-3.5 text-red-300" />
-                                ) : (
-                                  <Clock className="w-3.5 h-3.5" style={{ opacity: 0.6 }} />
-                                )}
-                              </span>
-                            )}
-
-                            {/* Status text for outbound */}
-                            {isOutbound && (
-                              <span className="text-[9px] capitalize" style={{ opacity: 0.7 }}>
-                                {msg.status}
-                              </span>
-                            )}
+                            {isOut && <MessageStatusBadge status={msg.status} />}
                           </div>
 
-                          {/* Hover actions */}
-                          <div className={`absolute top-1 ${isOutbound ? '-left-8' : '-right-8'} opacity-0 group-hover/bubble:opacity-100 transition-opacity flex gap-1`}>
+                          {/* Action Hover: WhatsApp-Style Delete & Copy */}
+                          <div
+                            className={`absolute top-1 ${
+                              isOut ? '-left-16' : '-right-16'
+                            } hidden group-hover:flex items-center gap-1 bg-[#0b1437] p-1 rounded-xl border border-white/10 shadow-lg`}
+                          >
                             <button
-                              onClick={() => { setPendingDeleteMsgId(msg.id); setDeleteConfirmModal('message'); }}
-                              className="p-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] shadow-sm text-[var(--text-muted)] hover:text-red-500 transition-colors"
+                              onClick={() => {
+                                setPendingDeleteMsgId(msg.id);
+                                setDeleteConfirmModal('message');
+                              }}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              title="Delete message"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleCopy(msg.content)}
-                              className="p-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] shadow-sm text-[var(--text-muted)] hover:text-blue-500 transition-colors"
+                              className="p-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors cursor-pointer"
+                              title="Copy text"
                             >
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -554,227 +608,121 @@ export default function WhatsAppStyleInboxPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Chat Input Bar */}
-                <div className="p-3 bg-[var(--bg-card)] border-t border-[var(--border-color)] space-y-2">
-                  {/* Route Selector Pill for reply */}
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold text-[var(--text-muted)]">Reply via:</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setReplyRoute('auto')}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            replyRoute === 'auto'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                          }`}
-                        >
-                          Smart Auto
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReplyRoute('toll_free')}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            replyRoute === 'toll_free'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                          }`}
-                        >
-                          Toll-Free (+1888)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReplyRoute('local')}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            replyRoute === 'local'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                          }`}
-                        >
-                          Local 10DLC (+1479)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReplyRoute('whatsapp')}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            replyRoute === 'whatsapp'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-emerald-500/20'
-                          }`}
-                        >
-                          WhatsApp
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await simulateInboundReply(activePhone, 'Got your message, thanks!', replyRoute === 'whatsapp' ? 'whatsapp' : 'sms');
-                        await loadMessages();
-                        await refreshThreads();
-                      }}
-                      className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <Bot className="w-3 h-3" />
-                      <span>Simulate Reply</span>
-                    </button>
+                {/* Input Area */}
+                <div className="p-3 sm:p-4 border-t border-white/10 bg-[#060b26] space-y-2.5 flex-shrink-0">
+                  {/* Route selector pills */}
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
+                    <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                      Reply via:
+                    </span>
+                    {[
+                      { key: 'auto', label: 'Smart Auto (+1888)' },
+                      { key: 'toll_free', label: 'Toll-Free' },
+                      { key: 'local', label: 'Local 10DLC' },
+                      { key: 'whatsapp', label: 'WhatsApp' },
+                    ].map((r) => (
+                      <button
+                        key={r.key}
+                        type="button"
+                        onClick={() => setReplyRoute(r.key as any)}
+                        className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          replyRoute === r.key
+                            ? 'bg-blue-600 text-white shadow-[0_0_8px_rgba(0,117,255,0.6)]'
+                            : 'bg-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
                   </div>
 
-                  {sendError && (
-                    <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{sendError}</span>
-                    </div>
-                  )}
-
-                  {/* Input Form */}
+                  {/* Send Form */}
                   <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <input
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      placeholder="Type a message... (Press Enter to send)"
-                      className="flex-1 zs-input text-xs py-2.5"
+                      placeholder={`Type message to ${activeThread?.name || activePhone}...`}
+                      className="vision-input flex-1 py-2.5 text-xs sm:text-sm bg-[#0b1437]"
                     />
                     <button
                       type="submit"
                       disabled={isSending || !inputText.trim()}
-                      className="zs-btn-primary py-2.5 px-4 text-xs shadow-md"
+                      className="vision-btn-primary py-2.5 px-4 text-xs sm:text-sm shadow-lg flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50 cursor-pointer"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>{isSending ? 'Sending...' : 'Send'}</span>
+                      <Send className="w-4 h-4" />
+                      <span className="hidden sm:inline">Send</span>
                     </button>
                   </form>
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--text-muted)] space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-color)] flex items-center justify-center text-blue-500 shadow-xs">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <div className="w-16 h-16 rounded-3xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 shadow-[0_0_20px_rgba(0,117,255,0.3)]">
                   <MessageSquare className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-bold text-[var(--text-heading)]">ZenithTech Omnichannel Inbox</h3>
-                <p className="text-xs max-w-sm">
-                  Select a contact from the left pane to view the conversation stream, delete messages, or dispatch via Toll-Free and Local numbers.
+                <h3 className="text-base font-extrabold text-white">No Conversation Selected</h3>
+                <p className="text-xs max-w-sm mt-1 leading-relaxed">
+                  Choose a recipient from the left list to review real-time message logs, carrier deliverability, or dispatch responses.
                 </p>
               </div>
             )}
           </div>
-
-          {/* ══════════════════════════════════════════════════════
-              RIGHT PANE: Contact Details (Toggleable)
-          ══════════════════════════════════════════════════════ */}
-          {showContactDetails && activePhone && (
-            <div className="w-80 border-l border-[var(--border-color)] bg-[var(--bg-card)] p-5 flex flex-col justify-between animate-fade-in-up">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
-                  <h3 className="text-xs font-bold text-[var(--text-heading)] uppercase tracking-wider">
-                    Contact Details
-                  </h3>
-                  <button
-                    onClick={() => setShowContactDetails(false)}
-                    className="p-1 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-700 text-white font-bold text-xl flex items-center justify-center mx-auto shadow-md">
-                    {activeThread?.name ? activeThread.name.slice(0, 2).toUpperCase() : 'US'}
-                  </div>
-                  <h4 className="text-sm font-bold text-[var(--text-heading)]">
-                    {activeThread?.name || activePhone}
-                  </h4>
-                  <p className="text-xs font-mono text-[var(--text-muted)]">{activePhone}</p>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <div className="p-3 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs space-y-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Region / Market</p>
-                    <p className="font-bold text-[var(--text-heading)]">
-                      {activeThread?.country === 'CA' ? '🇨🇦 Canada (+1)' : '🇺🇸 United States (+1)'}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs space-y-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Carrier Route</p>
-                    <p className="font-bold text-blue-500">
-                      {activeThread?.senderRoute === 'local' ? 'Local 10DLC (+14795909259)' : 'Toll-Free (+18884020949)'}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs space-y-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Total Messages</p>
-                    <p className="font-bold text-[var(--text-heading)]">{messages.length} messages exchanged</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[var(--border-color)] space-y-2">
-                <button
-                  onClick={() => setDeleteConfirmModal('thread')}
-                  className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete Thread & Messages</span>
-                </button>
-              </div>
-            </div>
-          )}
-
         </div>
       </main>
 
       {/* Delete Confirmation Modal (WhatsApp Style) */}
       {deleteConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in-up">
-          <div className="w-full max-w-sm bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl p-5 space-y-4">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-[var(--text-heading)]">
-                  {deleteConfirmModal === 'thread' ? 'Delete Conversation?' : 'Delete Message?'}
-                </h3>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {deleteConfirmModal === 'thread'
-                    ? 'All messages in this thread will be permanently deleted.'
-                    : 'This message will be deleted from your conversation.'}
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="vision-card w-full max-w-sm p-6 space-y-4 animate-scale-in">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
             </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-color)]">
+            <div className="text-center space-y-1">
+              <h3 className="text-base font-black text-white">
+                {deleteConfirmModal === 'thread' ? 'Delete Conversation?' : 'Delete Message?'}
+              </h3>
+              <p className="text-xs text-slate-300">
+                {deleteConfirmModal === 'thread'
+                  ? 'This will permanently remove this conversation from your live inbox.'
+                  : 'This message will be deleted for everyone in this conversation.'}
+              </p>
+            </div>
+            <div className="flex gap-2.5 pt-2">
               <button
                 onClick={() => {
                   setDeleteConfirmModal(null);
                   setPendingDeleteMsgId(null);
                 }}
-                className="zs-btn-secondary text-xs py-2 px-3"
+                className="vision-btn-glass flex-1 py-2 text-xs"
               >
                 Cancel
               </button>
               <button
                 onClick={() => {
                   if (deleteConfirmModal === 'thread') {
-                    handleDeleteConversation();
+                    handleDeleteThread();
                   } else if (pendingDeleteMsgId) {
                     handleDeleteMessage(pendingDeleteMsgId);
                   }
                 }}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 shadow-xs cursor-pointer"
+                className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors cursor-pointer"
               >
-                Delete for me
+                Delete
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Quick Send Modal */}
       <QuickSendModal
         isOpen={isQuickSendOpen}
         onClose={() => setIsQuickSendOpen(false)}
+        onSuccess={() => {
+          refreshThreads();
+          loadMessages();
+        }}
       />
     </div>
   );

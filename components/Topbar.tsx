@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Sun, Moon, Menu, Search, ChevronDown, CheckCircle2, Database } from 'lucide-react';
+import { Menu, Search, Sun, Moon, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import Link from 'next/link';
 
 interface TopbarProps {
   title: string;
@@ -12,19 +13,24 @@ interface TopbarProps {
   actions?: React.ReactNode;
 }
 
-export default function Topbar({ title, subtitle, dbConnected = true, onMenuToggle, actions }: TopbarProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const { user, role, switchRole, availableUsers } = useAuth();
+export default function Topbar({
+  title,
+  subtitle,
+  dbConnected = true,
+  onMenuToggle,
+  actions,
+}: TopbarProps) {
+  const { user } = useAuth();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
-    const saved = (localStorage.getItem('zs-theme') as 'light' | 'dark') || 'light';
+    const saved = (localStorage.getItem('zs-theme') as 'light' | 'dark') || 'dark';
     setTheme(saved);
     document.documentElement.setAttribute('data-theme', saved);
   }, []);
 
   const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
+    const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem('zs-theme', next);
     document.documentElement.setAttribute('data-theme', next);
@@ -32,119 +38,95 @@ export default function Topbar({ title, subtitle, dbConnected = true, onMenuTogg
 
   return (
     <header
-      className="zs-topbar fixed top-0 right-0 left-0 lg:left-[240px] h-[64px] z-30 flex items-center px-4 sm:px-6 gap-3"
+      className="fixed top-0 left-0 right-0 lg:left-[260px] z-30 h-16 sm:h-[72px] bg-[#000000] border-b border-white/10 px-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2.5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)]"
     >
-      {/* Mobile hamburger */}
-      <button
-        onClick={onMenuToggle}
-        className="lg:hidden p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors"
-        aria-label="Toggle menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {/* Title */}
-      <div className="flex-1 min-w-0">
-        <h1 className="text-sm font-semibold text-[var(--text-heading)] truncate">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-xs text-[var(--text-muted)] truncate mt-0.5 hidden sm:block">{subtitle}</p>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-color)] text-[var(--text-muted)] w-48 lg:w-60 cursor-text transition-all hover:border-[var(--border-strong)]">
-        <Search className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="text-xs select-none flex-1">Search…</span>
-        <kbd className="text-[10px] font-mono px-1 py-0.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-muted)]">⌘K</kbd>
-      </div>
-
-      {/* DB Status */}
-      <div
-        className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium"
-        style={{
-          background: dbConnected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-          color: dbConnected ? '#16a34a' : '#dc2626',
-        }}
-      >
-        <Database className="w-3 h-3" />
-        <span>{dbConnected ? 'PostgreSQL Active' : 'DB Offline'}</span>
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: dbConnected ? '#22c55e' : '#ef4444', animation: 'pulse-dot 2s infinite' }}
-        />
-      </div>
-
-      {/* Extra actions slot */}
-      {actions}
-
-      {/* Divider */}
-      <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
-
-      {/* Notifications */}
-      <button
-        className="relative p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors"
-        aria-label="Notifications"
-      >
-        <Bell className="w-4 h-4" />
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full" />
-      </button>
-
-      {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        className="p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors"
-        aria-label="Toggle theme"
-      >
-        {theme === 'light'
-          ? <Moon className="w-4 h-4" />
-          : <Sun className="w-4 h-4 text-amber-400" />}
-      </button>
-
-      {/* User */}
-      <div className="relative">
+      {/* Left side: Hamburger (Mobile) + Breadcrumb & Title */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
         <button
-          onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-          className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--border-strong)] transition-all select-none"
+          onClick={onMenuToggle}
+          className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer"
+          aria-label="Toggle Navigation Menu"
         >
-          <div
-            className="w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-            style={{ background: '#374151' }}
-          >
-            {user?.avatar || 'U'}
-          </div>
-          <div className="hidden sm:block text-left leading-tight">
-            <p className="text-xs font-semibold text-[var(--text-primary)]">{user?.name || 'Admin'}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">{role?.replace('_', ' ')}</p>
-          </div>
-          <ChevronDown className="hidden sm:block w-3 h-3 text-[var(--text-muted)]" />
+          <Menu className="w-5 h-5" />
         </button>
 
-        {roleMenuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-52 p-1.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-lg z-50 animate-fade-in-up">
-            <div className="px-3 py-2 border-b border-[var(--border-subtle)] mb-1">
-              <p className="text-xs font-semibold text-[var(--text-heading)]">{user?.name}</p>
-              <p className="text-[11px] text-[var(--text-muted)]">{user?.email}</p>
-            </div>
-            <p className="px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-              Switch Role
-            </p>
-            {availableUsers?.map((u) => (
-              <button
-                key={u.role}
-                onClick={() => { switchRole(u.role); setRoleMenuOpen(false); }}
-                className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-              >
-                <div className="text-left">
-                  <p className="font-medium">{u.name}</p>
-                  <p className="text-[10px] text-[var(--text-muted)]">{u.role}</p>
-                </div>
-                {role === u.role && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />}
-              </button>
-            ))}
+        <div className="min-w-0 truncate">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+            <span>Pages</span>
+            <span className="text-slate-600">/</span>
+            <span className="text-slate-200 font-bold truncate">{title}</span>
+          </div>
+          <h1 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight truncate">
+            {title}
+          </h1>
+        </div>
+      </div>
+
+      {/* Right side: Search, Theme Toggle, Actions, PostgreSQL Status, Profile */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Search (Desktop) */}
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 w-40 lg:w-52 focus-within:border-blue-500 focus-within:bg-white/10 transition-all">
+          <Search className="w-3.5 h-3.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full bg-transparent text-xs text-white outline-none placeholder:text-slate-400 font-medium"
+          />
+        </div>
+
+        {/* PostgreSQL Database Indicator (Large screens) */}
+        {dbConnected && (
+          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+            <span>PostgreSQL Active</span>
           </div>
         )}
+
+        {/* Actions (Desktop only to prevent mobile topbar collapse) */}
+        {actions && (
+          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+            {actions}
+          </div>
+        )}
+
+        {/* Light / Dark Mode Switcher */}
+        <button
+          onClick={toggleTheme}
+          className="theme-switch-btn flex-shrink-0"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+          aria-label="Toggle light/dark theme"
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="w-4 h-4 text-amber-300 animate-spin-slow" />
+              <span className="hidden sm:inline font-bold text-xs">Light</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 text-cyan-300" />
+              <span className="hidden sm:inline font-bold text-xs">Dark</span>
+            </>
+          )}
+        </button>
+
+        {/* User Pill / Profile Avatar */}
+        <Link
+          href="/login"
+          className="flex items-center gap-2.5 pl-1 sm:pl-2 sm:border-l sm:border-white/15 flex-shrink-0 group"
+          title="Account / Switch User"
+        >
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-cyan-400 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-[0_0_12px_rgba(0,117,255,0.6)] group-hover:scale-105 transition-transform">
+            {user?.avatar || 'AS'}
+          </div>
+          <div className="hidden sm:block text-left leading-tight">
+            <p className="text-xs sm:text-sm font-black text-white truncate group-hover:text-cyan-300 transition-colors">
+              {user?.name || 'Arjit Sharma'}
+            </p>
+            <p className="text-[10px] text-cyan-400 truncate font-mono font-bold">
+              {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : user?.role === 'ADMIN' ? 'Admin' : 'Member'}
+            </p>
+          </div>
+        </Link>
       </div>
     </header>
   );
