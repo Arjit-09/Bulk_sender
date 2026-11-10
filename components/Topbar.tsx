@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Menu, Search, Sun, Moon, Sparkles } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Menu, Search, Sun, Moon, Sparkles, LogOut, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 
@@ -20,8 +20,9 @@ export default function Topbar({
   onMenuToggle,
   actions,
 }: TopbarProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const saved = (localStorage.getItem('zs-theme') as 'light' | 'dark') || 'dark';
@@ -109,24 +110,59 @@ export default function Topbar({
           )}
         </button>
 
-        {/* User Pill / Profile Avatar */}
-        <Link
-          href="/login"
-          className="flex items-center gap-2.5 pl-1 sm:pl-2 sm:border-l sm:border-white/15 flex-shrink-0 group"
-          title="Account / Switch User"
-        >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-cyan-400 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-[0_0_12px_rgba(0,117,255,0.6)] group-hover:scale-105 transition-transform">
-            {user?.avatar || 'AS'}
-          </div>
-          <div className="hidden sm:block text-left leading-tight">
-            <p className="text-xs sm:text-sm font-black text-white truncate group-hover:text-cyan-300 transition-colors">
-              {user?.name || 'Arjit Sharma'}
-            </p>
-            <p className="text-[10px] text-cyan-400 truncate font-mono font-bold">
-              {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : user?.role === 'ADMIN' ? 'Admin' : 'Member'}
-            </p>
-          </div>
-        </Link>
+        {/* User Profile Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-2.5 pl-1 sm:pl-2 sm:border-l sm:border-white/15 flex-shrink-0 group cursor-pointer"
+            title="Account & Session"
+          >
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-cyan-400 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+              {user?.avatar || 'AS'}
+            </div>
+            <div className="hidden sm:block text-left leading-tight">
+              <p className="text-xs sm:text-sm font-black text-white truncate group-hover:text-cyan-300 transition-colors">
+                {user?.name || 'Arjit Sharma'}
+              </p>
+              <p className="text-[10px] text-cyan-400 truncate font-mono font-bold">
+                {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : user?.role === 'ADMIN' ? 'Admin' : 'Member'}
+              </p>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 p-2 rounded-2xl bg-[#090e24] border border-white/10 shadow-2xl z-50 backdrop-blur-xl animate-scale-in">
+              <div className="px-3 py-2 border-b border-white/10">
+                <p className="text-xs font-black text-white truncate">{user?.name || 'Arjit Sharma'}</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">{user?.email || 'arjit@zenithtech.site'}</p>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-500/15 text-cyan-300">
+                  {user?.role === 'SUPER_ADMIN' ? 'Super Administrator' : user?.role === 'ADMIN' ? 'Operations Admin' : 'Campaign Member'}
+                </span>
+              </div>
+              <div className="pt-1 space-y-0.5">
+                <Link
+                  href="/settings"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4 text-slate-400" />
+                  <span>Workspace Settings</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    logout();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

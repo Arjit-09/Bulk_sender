@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
 
@@ -10,11 +11,15 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   avatar: string;
+  organization?: string;
 }
 
 interface AuthContextType {
   user: AuthUser;
   role: UserRole;
+  isLoggedIn: boolean;
+  login: (user: AuthUser) => void;
+  logout: () => void;
   switchRole: (newRole: UserRole) => void;
   setUser: (u: AuthUser) => void;
   isAdmin: boolean;
@@ -22,13 +27,14 @@ interface AuthContextType {
   availableUsers: AuthUser[];
 }
 
-const PRESET_USERS: Record<UserRole, AuthUser> = {
+export const PRESET_USERS: Record<UserRole, AuthUser> = {
   SUPER_ADMIN: {
     id: 'usr_super',
     name: 'Arjit Sharma',
-    email: 'superadmin@zenithtech.site',
+    email: 'arjit@zenithtech.site',
     role: 'SUPER_ADMIN',
     avatar: 'AS',
+    organization: 'Zenith Global Enterprise',
   },
   ADMIN: {
     id: 'usr_admin',
@@ -36,6 +42,7 @@ const PRESET_USERS: Record<UserRole, AuthUser> = {
     email: 'admin@zenithtech.site',
     role: 'ADMIN',
     avatar: 'OA',
+    organization: 'Zenith Operations Desk',
   },
   MEMBER: {
     id: 'usr_member',
@@ -43,12 +50,16 @@ const PRESET_USERS: Record<UserRole, AuthUser> = {
     email: 'user@zenithtech.site',
     role: 'MEMBER',
     avatar: 'CM',
+    organization: 'Marketing & Dispatch',
   },
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: PRESET_USERS.SUPER_ADMIN,
   role: 'SUPER_ADMIN',
+  isLoggedIn: false,
+  login: () => {},
+  logout: () => {},
   switchRole: () => {},
   setUser: () => {},
   isAdmin: true,
@@ -57,18 +68,52 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [role, setRole] = useState<UserRole>('SUPER_ADMIN');
   const [user, setUser] = useState<AuthUser>(PRESET_USERS.SUPER_ADMIN);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   useEffect(() => {
     try {
+      const loggedInFlag = localStorage.getItem('zs_logged_in');
       const savedRole = localStorage.getItem('zs_active_role') as UserRole;
-      if (savedRole && PRESET_USERS[savedRole]) {
-        setRole(savedRole);
-        setUser(PRESET_USERS[savedRole]);
+      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('zs_session=');
+
+      if (loggedInFlag === 'true' || hasCookie) {
+        setIsLoggedIn(true);
+        if (savedRole && PRESET_USERS[savedRole]) {
+          setRole(savedRole);
+          setUser(PRESET_USERS[savedRole]);
+        }
+      } else {
+        setIsLoggedIn(false);
       }
-    } catch {}
+    } catch {
+      setIsLoggedIn(false);
+    }
   }, []);
+
+  const login = (newUser: AuthUser) => {
+    setUser(newUser);
+    setRole(newUser.role);
+    setIsLoggedIn(true);
+    try {
+      localStorage.setItem('zs_logged_in', 'true');
+      localStorage.setItem('zs_active_role', newUser.role);
+      // Set session cookie for Next.js proxy/middleware
+      document.cookie = 'zs_session=active; path=/; max-age=604800; SameSite=Lax';
+    } catch {}
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    try {
+      localStorage.removeItem('zs_logged_in');
+      localStorage.removeItem('zs_active_role');
+      document.cookie = 'zs_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+    } catch {}
+    router.push('/login');
+  };
 
   const switchRole = (newRole: UserRole) => {
     if (PRESET_USERS[newRole]) {
@@ -88,6 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         role,
+        isLoggedIn,
+        login,
+        logout,
         switchRole,
         setUser,
         isAdmin,

@@ -22,6 +22,7 @@ import {
   HelpCircle,
   ChevronDown,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
@@ -81,7 +82,7 @@ export default function Sidebar({
   onClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { user, role, switchRole, availableUsers } = useAuth();
+  const { user, role, switchRole, availableUsers, logout } = useAuth();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
 
   const handleNavClick = () => {
@@ -267,6 +268,19 @@ export default function Sidebar({
                     {role === u.role && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
                   </button>
                 ))}
+
+                <div className="pt-1 mt-1 border-t border-white/10">
+                  <button
+                    onClick={() => {
+                      setRoleMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

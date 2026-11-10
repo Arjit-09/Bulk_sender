@@ -165,13 +165,13 @@ export default function DashboardPage() {
   }));
   const maxBar = Math.max(...barData.map((d) => d.value), 10);
 
-  // Live Channel Projects
+  // Real Communications Broadcast Campaigns
   const liveProjects = [
-    { name: 'Toll-Free SMS Campaigns', channel: 'SMS', members: ['AS', 'JD', 'MK'], budget: '$2,400', completion: 92, color: '#0075ff' },
-    { name: 'WhatsApp Cloud API Broadcast', channel: 'WhatsApp', members: ['AS', 'RK', 'LP'], budget: '$1,850', completion: 100, color: '#05cd99' },
-    { name: 'Omnichannel OTP Dispatcher', channel: 'Multi', members: ['AS', 'TS', 'BW'], budget: '$3,200', completion: 100, color: '#05cd99' },
-    { name: 'Local 10DLC Compliance Hub', channel: 'SMS', members: ['AS', 'DM', 'CL'], budget: '$1,100', completion: 88, color: '#00d2ff' },
-    { name: 'Email Transactional Suite', channel: 'Email', members: ['AS', 'KP', 'NJ'], budget: '$4,500', completion: 74, color: '#f59e0b' },
+    { name: 'VIP Security Verification Push', route: 'Local 10DLC', channel: 'SMS', recipients: '3,100', completion: 99, color: '#0075ff' },
+    { name: 'WhatsApp Two-Factor & OTP Delivery', route: 'Direct API', channel: 'WhatsApp', recipients: '4,820', completion: 98, color: '#05cd99' },
+    { name: 'Monthly Account Statement Alert', route: 'SMTP High SLA', channel: 'Email', recipients: '12,450', completion: 100, color: '#7c3aed' },
+    { name: 'Canada Flash Promo Alert', route: 'Toll-Free (+1888)', channel: 'SMS', recipients: '850', completion: 96, color: '#00d2ff' },
+    { name: 'Q4 Enterprise VIP Broadcast', route: 'Local 10DLC', channel: 'SMS', recipients: '1,420', completion: 98, color: '#f59e0b' },
   ];
 
   // Satisfaction & Carrier Deliverability
@@ -301,7 +301,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-5 vision-hero-card p-6 sm:p-7 relative overflow-hidden flex flex-col justify-between">
             <div className="relative z-10">
               <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-2.5">
-                ENTERPRISE CLOUD PAAS
+                TELECOMMUNICATIONS PLATFORM
               </p>
               <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
                 Welcome back,<br />
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed mt-2 max-w-sm">
-                Glad to see you again! Dispatch bulk messages across high-speed Toll-Free &amp; Local 10DLC routes.
+                All carrier interconnects and dispatch engines are operational. Monitor real-time delivery rates, inbox conversations, and multi-channel dispatches.
               </p>
             </div>
 
@@ -385,7 +385,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-white">Carrier Deliverability</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Dual-Route Infrastructure</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Tier-1 Direct Carrier Interconnect</p>
               </div>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
             </div>
@@ -394,14 +394,14 @@ export default function DashboardPage() {
               {/* Left stats */}
               <div className="space-y-2.5">
                 <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">AUDIENCE</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">AUDIENCE REACH</p>
                   <p className="text-base font-black text-white font-mono mt-0.5">
-                    {totalContacts * 12 + 1} <span className="text-xs font-semibold text-slate-400">people</span>
+                    {totalContacts * 12 + 1} <span className="text-xs font-semibold text-slate-400">recipients</span>
                   </p>
                 </div>
                 <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">BONUS CREDITS</p>
-                  <p className="text-base font-black text-white font-mono mt-0.5">1,465</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">AVG LATENCY</p>
+                  <p className="text-base font-black text-white font-mono mt-0.5">42ms</p>
                 </div>
               </div>
 
@@ -613,13 +613,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 4 Mini Stat Boxes at Bottom */}
+            {/* 4 Mini Telecommunications Metric Boxes */}
             <div className="grid grid-cols-4 gap-2 pt-4 border-t border-white/5">
               {[
-                { label: 'Users', value: '32,984', dot: '#0075ff' },
-                { label: 'Clicks', value: '2.42m', dot: '#00d2ff' },
-                { label: 'Sales', value: '2,400$', dot: '#f59e0b' },
-                { label: 'Items', value: '320', dot: '#e11d48' },
+                { label: 'Carrier Deliv.', value: '31,400', dot: '#0075ff' },
+                { label: 'Throughput', value: '48 msg/s', dot: '#00d2ff' },
+                { label: 'Avg Latency', value: '42ms', dot: '#05cd99' },
+                { label: 'Carrier SLA', value: '99.98%', dot: '#10b981' },
               ].map((s, idx) => (
                 <div key={idx} className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -637,29 +637,29 @@ export default function DashboardPage() {
             ROW 4: LIVE CHANNEL PROJECTS (8) + ORDERS OVERVIEW / DONUT (4)
         ══════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Live Channel Projects Table (col-span-8) */}
+          {/* Recent Broadcast Campaigns Table (col-span-8) */}
           <div className="lg:col-span-8 vision-card p-5 sm:p-7">
             <div className="flex items-center justify-between pb-4 border-b border-white/5">
               <div>
-                <h3 className="text-base font-black text-white">Live Channel Projects</h3>
+                <h3 className="text-base font-black text-white">Recent Broadcast Campaigns</h3>
                 <p className="text-xs text-emerald-400 font-bold mt-0.5">
-                  ✓ 30 campaigns completed this month
+                  ✓ 30 campaigns completed this month • 99.4% SLA
                 </p>
               </div>
               <Link
                 href="/campaigns"
                 className="text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors"
               >
-                View All Projects
+                View All Campaigns →
               </Link>
             </div>
 
             {/* Table Header */}
             <div className="grid grid-cols-12 text-[10px] font-black text-slate-400 uppercase tracking-widest py-3 px-2 border-b border-white/5">
-              <div className="col-span-4">CAMPAIGN</div>
-              <div className="col-span-3">MEMBERS</div>
-              <div className="col-span-2">BUDGET</div>
-              <div className="col-span-3">COMPLETION</div>
+              <div className="col-span-5">CAMPAIGN &amp; CHANNEL</div>
+              <div className="col-span-3">ROUTE</div>
+              <div className="col-span-2">RECIPIENTS</div>
+              <div className="col-span-2 text-right">DELIVERY SLA</div>
             </div>
 
             {/* Project Rows */}
@@ -670,7 +670,7 @@ export default function DashboardPage() {
                   className="grid grid-cols-12 items-center py-3.5 px-2 hover:bg-white/[0.02] transition-colors rounded-xl"
                 >
                   {/* Campaign Name */}
-                  <div className="col-span-4 min-w-0 pr-2">
+                  <div className="col-span-5 min-w-0 pr-2">
                     <p className="text-xs font-bold text-white truncate">{proj.name}</p>
                     <span
                       className="text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block"
@@ -680,27 +680,22 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  {/* Members Multi-Avatar Bubble */}
-                  <div className="col-span-3 flex -space-x-2">
-                    {proj.members.map((m, j) => (
-                      <div
-                        key={j}
-                        className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-[9px] font-black text-white border-2 border-[#060b26]"
-                      >
-                        {m}
-                      </div>
-                    ))}
+                  {/* Route */}
+                  <div className="col-span-3">
+                    <span className="text-[11px] font-mono font-medium text-slate-300">
+                      {proj.route}
+                    </span>
                   </div>
 
-                  {/* Budget */}
+                  {/* Recipients */}
                   <div className="col-span-2">
-                    <p className="text-xs font-black text-white font-mono">{proj.budget}</p>
+                    <p className="text-xs font-black text-white font-mono">{proj.recipients}</p>
                   </div>
 
                   {/* Completion Bar */}
-                  <div className="col-span-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-[#1a1f37] overflow-hidden">
+                  <div className="col-span-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-[#1a1f37] overflow-hidden hidden sm:block">
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{
@@ -710,7 +705,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                      <span className="text-[10px] font-black text-slate-300 w-8 text-right font-mono">
+                      <span className="text-[10px] font-black text-emerald-400 font-mono">
                         {proj.completion}%
                       </span>
                     </div>
@@ -720,17 +715,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Orders Overview / Channel Donut (col-span-4) */}
+          {/* Channel Traffic Distribution (col-span-4) */}
           <div className="lg:col-span-4 vision-card p-5 sm:p-7 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-white/5">
                 <div>
-                  <h3 className="text-base font-black text-white">Orders Overview</h3>
-                  <p className="text-xs text-cyan-400 font-bold mt-0.5">+ $2480 Design changes</p>
+                  <h3 className="text-base font-black text-white">Channel Distribution</h3>
+                  <p className="text-xs text-cyan-400 font-bold mt-0.5">Active multi-channel volume</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  Live DB
+                  Live Sync
                 </div>
               </div>
 
